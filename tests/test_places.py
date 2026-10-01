@@ -94,3 +94,18 @@ def test_missing_key_never_calls_api(post,monkeypatch):
 def test_validation_before_requests(post,kwargs):
     assert 'error' in call(**kwargs)
     post.assert_not_called()
+
+
+def test_search_evaluates_weekly_hours(post):
+    post.return_value.json.return_value = {'places': [dict(PLACE, regularOpeningHours={
+        'periods': [{'open': {'day': 6, 'hour': 9}, 'close': {'day': 6, 'hour': 17}}]})]}
+    result = call()
+    assert result['cafes'][0]['open_at_meeting_time'] is True
+    assert result['cafes'][0]['opening_status_source'] == 'regular_schedule'
+    assert result['meeting_time_nyc'] == TIME
+    assert call(meeting_time='2026-10-03T21:00:00Z')['cafes'][0]['open_at_meeting_time'] is False
+
+
+def test_ambiguous_meeting_time_never_requests(post):
+    assert 'ambiguous' in call(meeting_time='2026-11-01T01:30:00')['error']
+    post.assert_not_called()

@@ -64,7 +64,7 @@ TOOLS.append({
     "type": "function",
     "function": {
         "name": "score_best_cafe_option",
-        "description": "Rank known cafes by evidence-adjusted rating after enforcing rating, price, opening and optional station-distance constraints. Call after cafe search, never invent input data. Unknown opening hours produce provisional recommendations. Price levels are categories, not dollar amounts.",
+        "description": "Rank known cafes by evidence-adjusted rating after enforcing rating, price, opening and optional station-distance constraints. Call after cafe search, never invent input data. Unknown opening hours and estimates based on regular weekly hours produce provisional recommendations. Price levels are categories, not dollar amounts.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -76,12 +76,14 @@ TOOLS.append({
                         "rating": {"type": ["number", "null"], "description": "Provider rating 0–5; null if unavailable."},
                         "review_count": {"type": ["integer", "null"], "description": "Nonnegative provider review count; null if unavailable."},
                         "price_level": {"type": ["integer", "null"], "description": "Normalized category 0–4; null if unavailable."},
-                        "open_at_meeting_time": {"type": ["boolean", "null"], "description": "Whether open at the requested meeting time, not merely open now; null if unverified."},
+                        "opening_status_source": {"type": "string", "description": "Copy the provider-derived source, especially regular_schedule for a weekly-hours estimate."},
+                        "opening_status_note": {"type": "string", "description": "Copy the opening estimate caveat from cafe search."},
+                        "open_at_meeting_time": {"type": ["boolean", "null"], "description": "Reported or expected opening at requested meeting time, not merely open now; null if unknown. Preserve opening_status_source to identify schedule estimates."},
                         "station_distance_meters": {"type": ["number", "null"], "description": "Known distance to the relevant station; omit or null if unavailable."},
                     }, "required": ["name"]}},
                 "min_rating": {"type": "number", "default": 0, "description": "Minimum raw provider rating, 0–5."},
                 "price_levels": {"type": "array", "items": {"type": "integer"}, "description": "Allowed categories 0–4; omit to disable price filtering. Unknown prices do not pass an active filter."},
-                "require_open": {"type": "boolean", "default": True, "description": "Exclude known closed cafes; unknown opening status remains provisional."},
+                "require_open": {"type": "boolean", "default": True, "description": "Exclude cafes reported or expected closed; unknown opening status and regular schedule estimates remain provisional."},
                 "max_station_distance_meters": {"type": "number", "description": "Optional hard distance limit. Unknown distances do not pass this filter."},
             }, "required": ["cafes"],
         },
@@ -91,14 +93,14 @@ TOOLS.append({
 TOOLS.append({
     "type": "function", "function": {
         "name": "search_cafes_in_areas",
-        "description": "Search real cafes within 800 meters of 1–4 NYC candidate hubs using Google Places. Call after maps tools provide coordinates. Returns quality, price, regular hours and provider links. Future opening status is unverified and null, except closed businesses; do not invent opening status or station distance. Credentials are server-side only.",
+        "description": "Search real cafes within 800 meters of 1–4 NYC candidate hubs using Google Places. Call after maps tools provide coordinates. Returns quality, price, regular hours and provider links. Meeting-time opening is estimated from regular weekly hours in America/New_York; missing hours return null. Holiday hours and last-minute changes remain unverified. Preserve opening_status_source and opening_status_note when passing cafes to scoring; do not invent station distance. Credentials are server-side only.",
         "parameters": {"type": "object", "properties": {
             "areas": {"type": "array", "minItems": 1, "maxItems": 4,
                 "description": "Candidate hubs from maps/transit results, not invented coordinates.",
                 "items": {"type": "object", "properties": {
                     "area": {"type": "string"}, "lat": {"type": "number"}, "lng": {"type": "number"}
                 }, "required": ["area", "lat", "lng"]}},
-            "meeting_time": {"type": "string", "description": "Requested ISO date/time, e.g. 2026-10-03T14:00:00-04:00. Future opening verification remains pending in this version."},
+            "meeting_time": {"type": "string", "description": "Requested ISO date/time, e.g. 2026-10-03T14:00:00-04:00. Explicit offsets are converted to NYC time; offset-free input means NYC local time. Ambiguous DST times require an explicit offset."},
             "min_rating": {"type": "number", "default": 0, "description": "Minimum provider rating 0–5; missing rating fails a positive threshold."},
             "price_levels": {"type": "array", "items": {"type": "integer"}, "description": "Optional allowed price categories 0–4; unknown price fails an active filter."}
         }, "required": ["areas", "meeting_time"]}

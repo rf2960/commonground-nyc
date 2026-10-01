@@ -13,7 +13,8 @@ if result.get("error"):
 else:
     print("Real cafe candidates:")
     for cafe in result["cafes"]:
-        print(cafe["name"], "rating:", cafe["rating"], "reviews:", cafe["review_count"], "price:", cafe["price_level"])
+        print(cafe["name"], "rating:", cafe["rating"], "reviews:", cafe["review_count"], "price:", cafe["price_level"], "open at meeting:", cafe["open_at_meeting_time"] )
+        print("  Hours:", cafe["opening_status_note"])
     if result["cafes"]:
         scored = json.loads(score_best_cafe_option(result["cafes"]))
         winner = scored.get("selected_cafe")

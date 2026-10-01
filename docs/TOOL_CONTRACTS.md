@@ -39,14 +39,14 @@ person develop and test with fixtures on a separate branch.
 - Output: `{areas: [{area, lat, lng, commute_minutes}], provider, departure_time}`
 - Responsibility: one transit duration per traveler per candidate; return errors explicitly.
 
-### `search_cafes_in_areas` — Yulia (first version implemented)
+### `search_cafes_in_areas` — Yulia (implemented)
 
 - Input: `areas`, `meeting_time`, optional `min_rating`, optional `price_levels`
 - Output: `{cafes: [{name, area, address, rating, review_count, price_level, open_at_meeting_time, lat, lng, place_id}]}`
 - Responsibility: real cafe data with enough metadata for transparent ranking.
 - Implementation: Nearby Search (New), 800-meter radius, 10 results per area, maximum four areas; deduplicate place IDs. Reads `GOOGLE_MAPS_API_KEY` from server environment. No automatic retries.
 - Extra output fields: provider, meeting_time, area_errors, partial, warnings, message. All failed areas also return error.
-- Cafe metadata also includes regular_opening_hours, google_maps_url, attributions, opening_status_source. Future open_at_meeting_time remains null in this first version; known temporary/permanent business closures yield false. Do not treat regular hours as verified future availability. Station distance is not computed.
+- Cafe metadata also includes regular_opening_hours, google_maps_url, attributions, opening_status_source. open_at_meeting_time is evaluated from structured regular weekly periods at the NYC-local meeting time: true/false are schedule estimates, null means unavailable/malformed hours. Known temporary/permanent business closures yield false. opening_status_source=regular_schedule and opening_status_note identify estimates; do not treat them as verified future availability. Intervals include opening and exclude closing; overnight/week wrap and 24/7 are supported. Explicit offsets are converted to America/New_York; offset-free inputs mean NYC time, with ambiguous/nonexistent DST times rejected. meeting_time_nyc is returned for inspection. Station distance is not computed.
 - Active price filters reject unknown prices; positive rating thresholds reject missing ratings. Empty results do not silently relax constraints.
 
 ## Original decision tools
@@ -67,7 +67,7 @@ person develop and test with fixtures on a separate branch.
 
 - Input: `cafes`, optional `min_rating=0`, `price_levels=null`, `require_open=true`, `max_station_distance_meters=null`.
 - Cafe fields: existing cafe-search fields plus optional `station_distance_meters`. Unknown metadata uses null; prices normalize to integer categories 0–4.
-- Constraints: reject missing/below-threshold ratings; an active price or station-distance filter rejects unknown values. Known closed cafes are excluded when `require_open=true`; unknown hours remain provisional and require confirmation.
+- Constraints: reject missing/below-threshold ratings; an active price or station-distance filter rejects unknown values. Known closed cafes are excluded when `require_open=true`; unknown hours and regular-schedule estimates remain provisional and require confirmation. Preserve opening_status_source and opening_status_note when forwarding cafe records.
 - Quality: `(review_count * rating + 50 * 4.0) / (review_count + 50)`. Constants are a documented design heuristic, not a measured population average. Missing review count uses zero evidence with a warning.
 - Tie breakers: shortest known station distance, most reviews, name, place ID. No numeric station penalty is added to rating.
 - Output: `{selected_cafe, objective, scoring_rule, explanation, ranking, excluded}`. Each ranked record includes cafe, factor_breakdown, warnings, provisional, rank. No matches returns null selected_cafe and actionable explanation without relaxing constraints.

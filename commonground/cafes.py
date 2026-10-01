@@ -70,12 +70,15 @@ def score_best_cafe_option(
             if price_levels is not None and price not in price_levels:
                 reasons.append("Price is unknown or outside the allowed price levels.")
             if require_open and opened is False:
-                reasons.append("Closed at the meeting time.")
+                reasons.append("Expected closed according to regular weekly hours; holiday exceptions are unverified." if cafe.get("opening_status_source") == "regular_schedule" else "Closed at the meeting time.")
             if distance_limit is not None and (distance is None or distance > distance_limit):
                 reasons.append("Station distance is unknown or above the allowed maximum.")
             if reasons:
                 excluded.append({"name": name, "place_id": cafe.get("place_id"), "reasons": reasons})
                 continue
+            schedule_estimate = cafe.get("opening_status_source") == "regular_schedule"
+            if schedule_estimate:
+                warnings.append("Opening estimate uses regular weekly hours; holiday hours and last-minute changes are unverified.")
             if opened is None:
                 warnings.append("Opening status at meeting time is unverified; check before going.")
             if price is None:
@@ -91,7 +94,7 @@ def score_best_cafe_option(
                 "adjusted_rating": round(adjusted, 4), "review_evidence_weight": round(count / (count + 50), 4),
                 "price_level": price, "open_at_meeting_time": opened,
                 "station_distance_meters": distance,
-            }, "warnings": warnings, "provisional": require_open and opened is None,
+            }, "warnings": warnings, "provisional": require_open and (opened is None or schedule_estimate),
                 "_key": (-adjusted, distance if distance is not None else float('inf'), -count, name.casefold(), str(cafe.get('place_id', '')))}
             ranking.append(entry)
         ranking.sort(key=lambda entry: entry['_key'])
@@ -109,7 +112,7 @@ def score_best_cafe_option(
                 "note": "Design heuristic, not a satisfaction probability or measured NYC average. Price levels are categories, not exact dollar prices.",
             },
             "explanation": (f"{winner['cafe']['name']} has the highest evidence-adjusted rating among cafes passing the constraints."
-                + (" Opening status is unverified, so this recommendation is provisional." if winner['provisional'] else ""))
+                + (" Meeting-time opening is unverified or based only on regular hours, so this recommendation is provisional." if winner['provisional'] else ""))
                 if winner else "No cafe meets the constraints. Search another area or ask the group whether to relax a filter; do not silently relax it.",
             "ranking": ranking, "excluded": excluded,
         }, allow_nan=False)

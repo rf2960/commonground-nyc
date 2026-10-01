@@ -81,3 +81,16 @@ def test_empty_input_returns_actionable_error():
 def test_tool_is_registered_and_returns_json():
     assert any(t['function']['name'] == 'score_best_cafe_option' for t in TOOLS)
     assert json.loads(run_tool('score_best_cafe_option', {'cafes':[cafe()]}))['selected_cafe']['name'] == 'A'
+
+
+def test_regular_hours_recommendation_remains_provisional():
+    result = json.loads(score_best_cafe_option([
+        {'name': 'Expected open', 'rating': 4.5, 'review_count': 100,
+         'open_at_meeting_time': True, 'opening_status_source': 'regular_schedule'},
+        {'name': 'Expected closed', 'rating': 4.9, 'review_count': 100,
+         'open_at_meeting_time': False, 'opening_status_source': 'regular_schedule'},
+    ]))
+    assert result['selected_cafe']['name'] == 'Expected open'
+    assert result['ranking'][0]['provisional'] is True
+    assert any('holiday' in warning for warning in result['ranking'][0]['warnings'])
+    assert result['excluded'][0]['name'] == 'Expected closed'

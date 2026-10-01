@@ -13,7 +13,7 @@ This repository is the shared Phase 1 scaffold built from the course's
 - the Gemini tool-calling loop and session memory;
 - the required `/chat` response shape with visible tool calls;
 - Ruochen's tested `score_fairest_option` tool;
-- Yulia's tested `score_best_cafe_option` tool (quality scoring; external search available; meeting-time opening verification pending);
+- Yulia's tested `score_best_cafe_option` tool (quality scoring; external search available; meeting-time regular-hours estimates included);
 - agreed contracts for the maps/transit and cafe work;
 - a Cloud Run-ready Dockerfile.
 
@@ -76,5 +76,11 @@ Never put the key in frontend JavaScript, tool arguments, git, or screenshots.
 Search uses Nearby Search (New) and requests rating, review count, price and
 regular opening hours; requested fields affect billing.
 
-Opening verification for the future meeting is pending; these candidates are
-provisional. Preserve provider links/attributions when building result cards.
+Meeting-time opening is estimated from structured regular weekly hours in
+`America/New_York`, including overnight hours and week wrap. Missing/incomplete
+hours remain unknown. Holidays and last-minute changes are not verified, so
+regular-hours recommendations remain provisional; check with the venue.
+Explicit ISO offsets are converted to NYC; offset-free times mean NYC local time
+and ambiguous/nonexistent DST times need an explicit offset. `tzdata` provides
+NYC timezone rules on Windows as well as Linux. Preserve provider
+links/attributions and opening estimate notes in result cards.

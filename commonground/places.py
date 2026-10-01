@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
 from typing import Any
 
 import requests
 
 from .cafes import _number
+from .opening_hours import opening_status, parse_meeting_time
 
 URL = 'https://places.googleapis.com/v1/places:searchNearby'
 FIELDS = ','.join('places.' + field for field in (
@@ -52,8 +52,8 @@ def search_cafes_in_areas(
 ) -> str:
     """Search up to four NYC candidate hubs with one request per area.
 
-    This first version returns regular opening hours but leaves future opening
-    status unknown rather than substituting open-now or fabricating an answer.
+    Evaluate regular weekly hours in NYC local time as an estimate, not a
+    guarantee of future availability. Missing hours remain unknown.
     Coordinates come from the maps tool, never inferred by the model.
     """
     try:
@@ -68,9 +68,7 @@ def search_cafes_in_areas(
             if not (40.45 <= lat <= 40.95 and -74.3 <= lng <= -73.65):
                 raise ValueError('Candidate center is outside the supported NYC bounding box.')
             validated.append({'area': item['area'].strip(), 'lat': lat, 'lng': lng})
-        if not isinstance(meeting_time, str) or 'T' not in meeting_time:
-            raise ValueError('meeting_time must be an ISO date/time, e.g. 2026-10-03T14:00:00-04:00.')
-        datetime.fromisoformat(meeting_time.replace('Z', '+00:00'))
+        local_meeting = parse_meeting_time(meeting_time)
         minimum = _number(min_rating, 'min_rating', 0, 5)
         if price_levels is not None and (not isinstance(price_levels, list) or not price_levels or any(
             isinstance(p, bool) or not isinstance(p, int) or p not in range(5) for p in price_levels
@@ -100,22 +98,21 @@ def search_cafes_in_areas(
                     if not name or loc.get('latitude') is None or loc.get('longitude') is None:
                         continue
                     seen.add(place_id)
-                    closed = p.get('businessStatus') in ('CLOSED_TEMPORARILY', 'CLOSED_PERMANENTLY')
+                    status = opening_status(p, local_meeting)
                     cafes.append({
                         'name': name, 'area': area['area'], 'address': p.get('formattedAddress'),
                         'rating': rating, 'review_count': p.get('userRatingCount'), 'price_level': price,
-                        'open_at_meeting_time': False if closed else None,
+                        **status,
                         'lat': loc['latitude'], 'lng': loc['longitude'], 'place_id': place_id,
                         'regular_opening_hours': p.get('regularOpeningHours'),
                         'google_maps_url': p.get('googleMapsUri'), 'attributions': p.get('attributions', []),
-                        'opening_status_source': 'business closure' if closed else 'not yet verified for meeting time',
                     })
             except (requests.RequestException, ValueError, TypeError) as error:
                 message = str(error) if isinstance(error, ValueError) else 'Places request timed out, failed, or returned malformed data. Retry later.'
                 errors.append({'area': area['area'], 'error': message})
-        result = {'cafes': cafes, 'provider': 'Google Places (New)', 'meeting_time': meeting_time,
+        result = {'cafes': cafes, 'provider': 'Google Places (New)', 'meeting_time': meeting_time, 'meeting_time_nyc': local_meeting.isoformat(),
                   'area_errors': errors, 'partial': bool(cafes and errors),
-                  'warnings': ['Future opening status is unverified in this version; regular hours are returned for inspection. Station distances are not computed.'],
+                  'warnings': ['Opening estimates use regular weekly hours in NYC time; holiday hours and last-minute changes are unverified. Station distances are not computed.'],
                   'message': 'Cafe candidates found.' if cafes else 'No matching cafes returned. Inspect area_errors or ask whether to relax rating/price filters.'}
         if errors and len(errors) == len(validated):
             result['error'] = 'All area searches failed; inspect area_errors for recovery steps.'
