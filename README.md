@@ -13,10 +13,11 @@ This repository is the shared Phase 1 scaffold built from the course's
 - the Gemini tool-calling loop and session memory;
 - the required `/chat` response shape with visible tool calls;
 - Ruochen's tested `score_fairest_option` tool;
+- Yulia's tested `score_best_cafe_option` tool (quality scoring; external cafe search pending);
 - agreed contracts for the maps/transit and cafe work;
 - a Cloud Run-ready Dockerfile.
 
-The transit, cafe, fastest, and best-cafe tools are still team work in progress. This
+The transit, external cafe search, and fastest tools are still team work in progress. This
 README does not claim the initial scaffold already satisfies the final rubric.
 
 ## Setup

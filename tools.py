@@ -9,6 +9,7 @@ import json
 from collections.abc import Callable
 
 from commonground import score_fairest_option
+from commonground.cafes import score_best_cafe_option
 
 
 TOOLS = [
@@ -58,8 +59,37 @@ TOOLS = [
 ]
 
 
+TOOLS.append({
+    "type": "function",
+    "function": {
+        "name": "score_best_cafe_option",
+        "description": "Rank known cafes by evidence-adjusted rating after enforcing rating, price, opening and optional station-distance constraints. Call after cafe search, never invent input data. Unknown opening hours produce provisional recommendations. Price levels are categories, not dollar amounts.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "cafes": {"type": "array", "minItems": 1, "description": "Cafe records from search, with optional measured station distance.", "items": {
+                    "type": "object", "properties": {
+                        "name": {"type": "string", "description": "Real cafe name."},
+                        "area": {"type": "string"}, "address": {"type": "string"},
+                        "place_id": {"type": "string"},
+                        "rating": {"type": ["number", "null"], "description": "Provider rating 0–5; null if unavailable."},
+                        "review_count": {"type": ["integer", "null"], "description": "Nonnegative provider review count; null if unavailable."},
+                        "price_level": {"type": ["integer", "null"], "description": "Normalized category 0–4; null if unavailable."},
+                        "open_at_meeting_time": {"type": ["boolean", "null"], "description": "Whether open at the requested meeting time, not merely open now; null if unverified."},
+                        "station_distance_meters": {"type": ["number", "null"], "description": "Known distance to the relevant station; omit or null if unavailable."},
+                    }, "required": ["name"]}},
+                "min_rating": {"type": "number", "default": 0, "description": "Minimum raw provider rating, 0–5."},
+                "price_levels": {"type": "array", "items": {"type": "integer"}, "description": "Allowed categories 0–4; omit to disable price filtering. Unknown prices do not pass an active filter."},
+                "require_open": {"type": "boolean", "default": True, "description": "Exclude known closed cafes; unknown opening status remains provisional."},
+                "max_station_distance_meters": {"type": "number", "description": "Optional hard distance limit. Unknown distances do not pass this filter."},
+            }, "required": ["cafes"],
+        },
+    },
+})
+
 TOOL_MAP: dict[str, Callable[..., str]] = {
     "score_fairest_option": score_fairest_option,
+    "score_best_cafe_option": score_best_cafe_option,
 }
 
 
