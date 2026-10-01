@@ -35,6 +35,32 @@
       button:disabled { opacity:.45; cursor:wait; }
       .loading .content { color:#8490a0; }
       @media (max-width:760px) { .shell { grid-template-columns:1fr; margin:0; width:100%; min-height:100vh; border-radius:0; } aside { padding:22px; } .modes { grid-template-columns:repeat(3,1fr); } aside p { display:none; } #messages { max-height:none; } }
+      header .reset { float:right; padding:8px 12px; background:white; color:var(--navy); border:1px solid #ccd5e1; }
+      button:focus-visible, summary:focus-visible, a:focus-visible { outline:3px solid var(--mint); outline-offset:3px; }
+      .intro { padding:20px; border:1px solid #d7e8e3; border-radius:16px; background:#edf7f4; }
+      .intro h3 { margin:0 0 8px; font-size:1.1rem; }
+      .intro p { color:#526577; font-size:.88rem; line-height:1.6; margin:0 0 12px; }
+      .suggestions { display:flex; flex-wrap:wrap; gap:8px; }
+      .suggestions button { padding:9px 12px; background:white; color:var(--navy); border:1px solid #d2dedb; font-weight:600; text-align:left; }
+      .tool-list { border:1px solid #cde0db; border-radius:12px; background:#eef7f4; padding:12px 15px; }
+      summary { cursor:pointer; font-size:.85rem; font-weight:700; overflow-wrap:anywhere; }
+      .tool-list details { margin-top:10px; }
+      .tool-list pre { max-height:260px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.74rem; background:white; border-radius:8px; padding:12px; }
+      .tool-list h4 { margin:12px 0 4px; font-size:.75rem; }
+      .results { width:100%; }
+      .results h3 { margin:8px 0 12px; font-size:1rem; }
+      .cafe-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+      .cafe-card { background:white; border:1px solid #dfe7ec; border-radius:16px; padding:18px; overflow-wrap:anywhere; }
+      .cafe-card.winner { border:2px solid var(--mint); }
+      .badge { display:inline-block; background:#edf7f4; color:#216b61; padding:4px 8px; border-radius:7px; font-size:.7rem; font-weight:800; }
+      .cafe-card h4 { margin:12px 0 6px; font-size:1.05rem; }
+      .cafe-card p { color:#657185; font-size:.82rem; line-height:1.5; margin:6px 0; }
+      .facts { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; font-size:.8rem; }
+      .cafe-card a { display:inline-block; color:#216b61; font-size:.83rem; font-weight:700; margin-top:9px; }
+      .cafe-card .caution { color:#86521b; background:#fff7e7; padding:8px; border-radius:7px; }
+      .sample-note { background:#fff7e7; color:#86521b; padding:10px; border-radius:8px; font-size:.82rem; }
+      .msg { overflow-wrap:anywhere; }
+      @media(max-width:480px) { .cafe-grid { grid-template-columns:1fr; } header,#messages { padding:20px 16px; } .composer { padding:16px; } .composer button { padding:0 14px; } .msg { max-width:95%; } .modes { gap:6px; } .mode { padding:9px; } }
     </style>
   </head>
   <body>
@@ -50,20 +76,43 @@
         </div>
       </aside>
       <main>
-        <header><h2>Plan a meetup</h2><p>Tell me each origin, meeting time, budget, and what your group values.</p></header>
-        <div id="messages"></div>
+        <header><button id="reset-btn" class="reset">New meetup</button><h2>Plan a meetup</h2><p>Tell me each origin, meeting time, budget, and what your group values.</p></header>
+        <div id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
         <div class="composer">
-          <input id="user-input" placeholder="Four of us are coming from…" autocomplete="off" />
+          <input aria-label="Message CommonGround" id="user-input" placeholder="Four of us are coming from…" autocomplete="off" />
           <button id="send-btn">Send</button>
         </div>
       </main>
     </div>
     <script>
-      const messages=document.getElementById("messages"), input=document.getElementById("user-input"), button=document.getElementById("send-btn");
-      let sessionId=null;
-      function addMessage(role,text,loading=false){const el=document.createElement("div");el.className=`msg ${role==="you"?"user":"assistant"}${loading?" loading":""}`;const tag=document.createElement("div");tag.className="role";tag.textContent=role;const content=document.createElement("div");content.className="content";content.textContent=text;el.append(tag,content);messages.appendChild(el);messages.scrollTop=messages.scrollHeight;return el;}
-      async function send(){const text=input.value.trim();if(!text)return;input.value="";button.disabled=true;addMessage("you",text);const loading=addMessage("CommonGround","Thinking…",true);try{const response=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text,session_id:sessionId})});const data=await response.json();sessionId=data.session_id;for(const call of data.tool_calls||[]){const el=document.createElement("div");el.className="tool";const label=document.createElement("span");label.className="label";label.textContent="tool call  ";el.append(label,document.createTextNode(`${call.name}(${JSON.stringify(call.args)})\n→ ${call.result}`));messages.insertBefore(el,loading);}loading.querySelector(".content").textContent=data.response;loading.classList.remove("loading");}catch(error){loading.querySelector(".content").textContent=`Error: ${error.message}`;loading.classList.remove("loading");}button.disabled=false;input.focus();}
-      button.addEventListener("click",send);input.addEventListener("keydown",event=>{if(event.key==="Enter")send();});input.focus();
+      const messages=document.getElementById('messages'), input=document.getElementById('user-input'), button=document.getElementById('send-btn'), reset=document.getElementById('reset-btn');
+      let sessionId=null, busy=false;
+      const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
+      const parsed=value=>{try{return typeof value==='string'?JSON.parse(value):value;}catch{return null;}};
+      const pretty=value=>JSON.stringify(parsed(value)??value,null,2);
+      function addMessage(role,text,loading=false){const el=node('div',`msg ${role==='you'?'user':'assistant'}${loading?' loading':''}`);el.append(node('div','role',role),node('div','content',text));messages.append(el);return el;}
+      function intro(){const el=node('section','intro');el.append(node('h3','', 'A better place to meet.'),node('p','','Share 2–6 starting locations, a date and time, your budget, and whether you care most about fairness, speed, or the cafe.'));const choices=node('div','suggestions');for(const [label,text] of [
+        ['Plan a group meetup','We are coming from Columbia University, Astoria, and Bedford Ave Station. Help us plan coffee this Saturday at 2pm, moderate budget, minimum rating 4.3.'],
+        ['Compare cafe quality','Compare these example cafes: A has rating 4.9 with 2 reviews; B has rating 4.6 with 500 reviews. Both are price level 2 and open at our meeting time. Use the cafe scoring tool.']
+      ]){const b=node('button','',label);b.addEventListener('click',()=>{input.value=text;input.focus();});choices.append(b);}el.append(choices);messages.append(el);}
+      function toolLog(calls){const group=node('details','tool-list');group.append(node('summary','',`${calls.length} tool call${calls.length===1?'':'s'} · inspect inputs and results`));for(const call of calls){const d=node('details');d.append(node('summary','',call.name||'Tool'),node('h4','','Arguments'),node('pre','',pretty(call.args)),node('h4','','Result'),node('pre','',pretty(call.result)));group.append(d);}return group;}
+      function safeLink(value){try{const u=new URL(value);return u.protocol==='https:'?u.href:null;}catch{return null;}}
+      function cafeCard(cafe,entry,winner){const card=node('article',`cafe-card${winner?' winner':''}`);card.append(node('span','badge',winner?'Best cafe choice':cafe.area||'Cafe candidate'),node('h4','',cafe.name||'Unnamed cafe'));if(cafe.address)card.append(node('p','',cafe.address));const facts=node('div','facts');facts.append(node('span','',typeof cafe.rating==='number'?`★ ${cafe.rating.toFixed(1)}`:'Rating unavailable'),node('span','',Number.isInteger(cafe.review_count)?`${cafe.review_count.toLocaleString()} reviews`:'Review count unavailable'),node('span','',Number.isInteger(cafe.price_level)?(cafe.price_level===0?'Free price category':'$'.repeat(cafe.price_level)):'Price unavailable'));card.append(facts);
+        const status=cafe.open_at_meeting_time;card.append(node('p',status===null||status===undefined?'caution':'',status===true?'Reported open at meeting time':status===false?'Closed at meeting time':'Meeting-time hours unverified — check before going.'));
+        const factors=entry?.factor_breakdown;if(factors){if(typeof factors.adjusted_rating==='number'&&Number.isFinite(factors.adjusted_rating))card.append(node('p','',`Review-adjusted rating: ${factors.adjusted_rating.toFixed(2)} / 5`));if(typeof factors.station_distance_meters==='number')card.append(node('p','',`${Math.round(factors.station_distance_meters)} m from the provided station`));}
+        const url=safeLink(cafe.google_maps_url);if(url){const a=node('a','','View on Google Maps ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';card.append(a);}for(const attr of cafe.attributions||[]){if(attr.provider)card.append(node('p','',`Data attribution: ${attr.provider}`));}return card;}
+      function resultCards(calls){let scored=null,found=null;for(const call of calls){const r=parsed(call.result);if(!r||r.error)continue;if(call.name==='score_best_cafe_option'&&Array.isArray(r.ranking))scored=r;if(call.name==='search_cafes_in_areas'&&Array.isArray(r.cafes))found=r;}
+        const entries=scored?scored.ranking:(found?.cafes||[]).map(cafe=>({cafe}));if(!entries.length)return null;
+        const section=node('section','results');section.append(node('h3','',scored?'Cafe recommendations':'Cafes found · not yet ranked'));if(scored?.explanation)section.append(node('p','',scored.explanation));const grid=node('div','cafe-grid');const metadata=new Map((found?.cafes||[]).map(c=>[c.place_id,c]));entries.slice(0,4).forEach((entry,i)=>{const c=entry.cafe||{};const cafe={...(c.place_id?metadata.get(c.place_id):{}),...c};grid.append(cafeCard(cafe,entry,!!scored&&i===0));});section.append(grid);if(entries.length>4)section.append(node('p','',`${entries.length-4} additional candidates are available in the tool results.`));return section;}
+      async function send(){if(busy)return;const text=input.value.trim();if(!text)return;busy=true;button.disabled=true;reset.disabled=true;input.value='';addMessage('you',text);const loading=addMessage('CommonGround','Finding common ground…',true);try{const response=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:sessionId})});if(!response.ok)throw new Error(`Chat request failed (${response.status}). Please try again.`);const data=await response.json();if(typeof data.response!=='string'||typeof data.session_id!=='string')throw new Error('Unexpected chat response. Please try again.');sessionId=data.session_id;const calls=Array.isArray(data.tool_calls)?data.tool_calls:[];if(calls.length)messages.insertBefore(toolLog(calls),loading);const cards=resultCards(calls);if(cards)messages.insertBefore(cards,loading);loading.querySelector('.content').textContent=data.response;}catch(error){loading.querySelector('.content').textContent=error.message||'Unable to connect. Please try again.';}finally{loading.classList.remove('loading');busy=false;button.disabled=false;reset.disabled=false;input.focus();messages.scrollTop=messages.scrollHeight;}}
+      reset.addEventListener('click',async()=>{if(busy)return;const old=sessionId;sessionId=null;messages.replaceChildren();intro();input.focus();if(old){try{await fetch(`/clear?session_id=${encodeURIComponent(old)}`,{method:'POST'});}catch{/* A fresh session still prevents reuse of old conversation state. */}}});
+      button.addEventListener('click',send);input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();send();}});intro();
+      // Explicit preview fixtures: never presented as a live search result.
+      if(new URLSearchParams(location.search).get('demo')==='1'){
+        messages.append(node('p','sample-note','Sample layout only · fictional cafes and example data.'));
+        const example={selected_cafe:{name:'Example Cafe A'},explanation:'Example Cafe A wins on review-adjusted quality within the group budget.',ranking:[{cafe:{name:'Example Cafe A',area:'Union Square',address:'Example address, Manhattan',rating:4.6,review_count:500,price_level:2,open_at_meeting_time:null},factor_breakdown:{adjusted_rating:4.5455}},{cafe:{name:'Example Cafe B',area:'Union Square',rating:4.5,review_count:100,price_level:1,open_at_meeting_time:null},factor_breakdown:{adjusted_rating:4.3333}}]};
+        const calls=[{name:'score_best_cafe_option',args:{price_levels:[1,2]},result:JSON.stringify(example)}];messages.append(toolLog(calls),resultCards(calls));
+      }
     </script>
   </body>
 </html>
