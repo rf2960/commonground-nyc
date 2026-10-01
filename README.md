@@ -13,11 +13,11 @@ This repository is the shared Phase 1 scaffold built from the course's
 - the Gemini tool-calling loop and session memory;
 - the required `/chat` response shape with visible tool calls;
 - Ruochen's tested `score_fairest_option` tool;
-- Yulia's tested `score_best_cafe_option` tool (quality scoring; external cafe search pending);
+- Yulia's tested `score_best_cafe_option` tool (quality scoring; external search available; meeting-time opening verification pending);
 - agreed contracts for the maps/transit and cafe work;
 - a Cloud Run-ready Dockerfile.
 
-The transit, external cafe search, and fastest tools are still team work in progress. This
+The transit and fastest tools are still team work in progress. This
 README does not claim the initial scaffold already satisfies the final rubric.
 
 ## Setup
@@ -67,3 +67,14 @@ overwrite one another's work.
 - `submission.json` contains every Columbia UNI/email and the deployed Cloud Run URL.
 - The public Cloud Run URL works without grader setup and remains live until grades.
 
+
+## Cafe search setup
+
+Set `GOOGLE_MAPS_API_KEY` in the server environment using a key restricted to
+Places API (New). The project must have that API enabled and working billing.
+Never put the key in frontend JavaScript, tool arguments, git, or screenshots.
+Search uses Nearby Search (New) and requests rating, review count, price and
+regular opening hours; requested fields affect billing.
+
+Opening verification for the future meeting is pending; these candidates are
+provisional. Preserve provider links/attributions when building result cards.

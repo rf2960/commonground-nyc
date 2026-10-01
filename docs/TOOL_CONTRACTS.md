@@ -39,11 +39,15 @@ person develop and test with fixtures on a separate branch.
 - Output: `{areas: [{area, lat, lng, commute_minutes}], provider, departure_time}`
 - Responsibility: one transit duration per traveler per candidate; return errors explicitly.
 
-### `search_cafes_in_areas` — Yulia
+### `search_cafes_in_areas` — Yulia (first version implemented)
 
 - Input: `areas`, `meeting_time`, optional `min_rating`, optional `price_levels`
 - Output: `{cafes: [{name, area, address, rating, review_count, price_level, open_at_meeting_time, lat, lng, place_id}]}`
 - Responsibility: real cafe data with enough metadata for transparent ranking.
+- Implementation: Nearby Search (New), 800-meter radius, 10 results per area, maximum four areas; deduplicate place IDs. Reads `GOOGLE_MAPS_API_KEY` from server environment. No automatic retries.
+- Extra output fields: provider, meeting_time, area_errors, partial, warnings, message. All failed areas also return error.
+- Cafe metadata also includes regular_opening_hours, google_maps_url, attributions, opening_status_source. Future open_at_meeting_time remains null in this first version; known temporary/permanent business closures yield false. Do not treat regular hours as verified future availability. Station distance is not computed.
+- Active price filters reject unknown prices; positive rating thresholds reject missing ratings. Empty results do not silently relax constraints.
 
 ## Original decision tools
 

@@ -10,6 +10,7 @@ from collections.abc import Callable
 
 from commonground import score_fairest_option
 from commonground.cafes import score_best_cafe_option
+from commonground.places import search_cafes_in_areas
 
 
 TOOLS = [
@@ -87,9 +88,27 @@ TOOLS.append({
     },
 })
 
+TOOLS.append({
+    "type": "function", "function": {
+        "name": "search_cafes_in_areas",
+        "description": "Search real cafes within 800 meters of 1–4 NYC candidate hubs using Google Places. Call after maps tools provide coordinates. Returns quality, price, regular hours and provider links. Future opening status is unverified and null, except closed businesses; do not invent opening status or station distance. Credentials are server-side only.",
+        "parameters": {"type": "object", "properties": {
+            "areas": {"type": "array", "minItems": 1, "maxItems": 4,
+                "description": "Candidate hubs from maps/transit results, not invented coordinates.",
+                "items": {"type": "object", "properties": {
+                    "area": {"type": "string"}, "lat": {"type": "number"}, "lng": {"type": "number"}
+                }, "required": ["area", "lat", "lng"]}},
+            "meeting_time": {"type": "string", "description": "Requested ISO date/time, e.g. 2026-10-03T14:00:00-04:00. Future opening verification remains pending in this version."},
+            "min_rating": {"type": "number", "default": 0, "description": "Minimum provider rating 0–5; missing rating fails a positive threshold."},
+            "price_levels": {"type": "array", "items": {"type": "integer"}, "description": "Optional allowed price categories 0–4; unknown price fails an active filter."}
+        }, "required": ["areas", "meeting_time"]}
+    }
+})
+
 TOOL_MAP: dict[str, Callable[..., str]] = {
     "score_fairest_option": score_fairest_option,
     "score_best_cafe_option": score_best_cafe_option,
+    "search_cafes_in_areas": search_cafes_in_areas,
 }
 
 
