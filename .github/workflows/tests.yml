@@ -3,7 +3,11 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "ruochen/**"
+      - "andrew/**"
+      - "yulia/**"
 
 permissions:
   contents: read
