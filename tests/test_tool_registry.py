@@ -34,6 +34,15 @@ def test_andrew_tool_schemas_are_descriptive_and_require_inputs():
         assert definition["parameters"]["required"]
 
 
+def test_transit_tool_treats_meeting_time_as_arrival_time():
+    definition = tool_definitions()["get_transit_matrix"]
+    properties = definition["parameters"]["properties"]
+
+    assert "arrival_time" in properties
+    assert "departure_time" not in properties
+    assert "arrival_time" in definition["parameters"]["required"]
+
+
 def test_fastest_tool_dispatches_through_registry():
     scored = json.loads(
         run_tool(
@@ -68,3 +77,4 @@ def test_system_prompt_contains_tool_order_and_safety_rules():
     assert positions == sorted(positions)
     assert "Never invent" in SYSTEM_PROMPT
     assert "explicit timezone offset" in SYSTEM_PROMPT
+    assert "Never treat the meeting time as a departure time" in SYSTEM_PROMPT

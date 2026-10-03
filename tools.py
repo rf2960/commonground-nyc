@@ -158,9 +158,10 @@ TOOLS.extend(
                 "description": (
                     "Compute real Google Routes public-transit times from every "
                     "traveler to every candidate area. Call after candidate generation "
-                    "and only with a specific RFC 3339 meeting time including a timezone "
-                    "offset. Candidates missing any traveler route are excluded. Pass "
-                    "the returned complete areas unchanged to the scoring tools."
+                    "and use the requested meeting time as an RFC 3339 arrival time "
+                    "including a timezone offset. Never treat the meeting time as a "
+                    "departure time. Candidates missing any traveler route are excluded. "
+                    "Pass the returned complete areas unchanged to the scoring tools."
                 ),
                 "parameters": {
                     "type": "object",
@@ -197,16 +198,16 @@ TOOLS.extend(
                                 "required": ["area", "lat", "lng"],
                             },
                         },
-                        "departure_time": {
+                        "arrival_time": {
                             "type": "string",
                             "description": (
-                                "Meeting departure timestamp in RFC 3339 format with "
-                                "an explicit offset, for example "
+                                "The time everyone should arrive for the meeting, in "
+                                "RFC 3339 format with an explicit offset, for example "
                                 "2026-10-03T14:00:00-04:00."
                             ),
                         },
                     },
-                    "required": ["origins", "candidate_areas", "departure_time"],
+                    "required": ["origins", "candidate_areas", "arrival_time"],
                 },
             },
         },
