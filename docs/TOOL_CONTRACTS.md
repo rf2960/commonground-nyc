@@ -33,11 +33,19 @@ person develop and test with fixtures on a separate branch.
 - Output: `{resolved_locations: [{traveler_id, input_location, formatted_address, lat, lng, place_id}], unresolved: []}`
 - Responsibility: resolve NYC addresses, landmarks, intersections, and subway stations.
 
+### `generate_candidate_areas` — Andrew
+
+- Input: `resolved_locations: [{traveler_id, lat, lng}]`, optional `max_candidates=4`.
+- Output: `{candidate_areas: [{area, lat, lng}], strategy}`.
+- Responsibility: create a deterministic shortlist of NYC transit hubs using geographic
+  heuristics. This shortlist never replaces real transit-time ranking.
+
 ### `get_transit_matrix` — Andrew
 
 - Input: `origins`, `candidate_areas`, `departure_time`
-- Output: `{areas: [{area, lat, lng, commute_minutes}], provider, departure_time}`
-- Responsibility: one transit duration per traveler per candidate; return errors explicitly.
+- Output: `{areas: [{area, lat, lng, commute_minutes}], traveler_ids, provider, departure_time, excluded_areas, unavailable_routes, attribution}`
+- Responsibility: one transit duration per traveler per candidate; exclude candidates
+  missing any traveler route, preserve traveler order, and return errors explicitly.
 
 ### `search_cafes_in_areas` — Yulia (implemented)
 
@@ -77,4 +85,3 @@ person develop and test with fixtures on a separate branch.
 
 Every tool returns a JSON string. Expected API or validation failures are encoded as
 `{"error": "..."}` so Gemini can recover instead of crashing the `/chat` endpoint.
-
