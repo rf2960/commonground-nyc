@@ -104,17 +104,17 @@ def _validated_candidate_areas(candidate_areas: Any) -> list[dict[str, Any]]:
     return validated
 
 
-def _normalized_departure_time(raw_departure_time: Any) -> str:
-    if not isinstance(raw_departure_time, str) or not raw_departure_time.strip():
-        raise ValueError("departure_time must be an RFC 3339 timestamp")
+def _normalized_arrival_time(raw_arrival_time: Any) -> str:
+    if not isinstance(raw_arrival_time, str) or not raw_arrival_time.strip():
+        raise ValueError("arrival_time must be an RFC 3339 timestamp")
 
-    timestamp = raw_departure_time.strip()
+    timestamp = raw_arrival_time.strip()
     try:
         parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     except ValueError as error:
-        raise ValueError("departure_time must be an RFC 3339 timestamp") from error
+        raise ValueError("arrival_time must be an RFC 3339 timestamp") from error
     if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ValueError("departure_time must include a timezone offset")
+        raise ValueError("arrival_time must include a timezone offset")
     return (
         parsed.astimezone(timezone.utc)
         .isoformat(timespec="seconds")
@@ -198,9 +198,9 @@ def _element_failure_reason(element: dict[str, Any]) -> str | None:
 def get_transit_matrix(
     origins: list[dict[str, Any]],
     candidate_areas: list[dict[str, Any]],
-    departure_time: str,
+    arrival_time: str,
 ) -> str:
-    """Return complete per-area transit times for every traveler.
+    """Return transit times that get every traveler to the meeting on time.
 
     Candidate areas with one or more unavailable routes are excluded from the
     scoring-ready ``areas`` list and described in ``unavailable_routes``.
@@ -208,7 +208,7 @@ def get_transit_matrix(
     try:
         validated_origins = _validated_origins(origins)
         validated_areas = _validated_candidate_areas(candidate_areas)
-        normalized_departure_time = _normalized_departure_time(departure_time)
+        normalized_arrival_time = _normalized_arrival_time(arrival_time)
     except ValueError as error:
         return json.dumps({"error": str(error)})
 
@@ -232,7 +232,7 @@ def get_transit_matrix(
             _waypoint(area["lat"], area["lng"]) for area in validated_areas
         ],
         "travelMode": "TRANSIT",
-        "departureTime": normalized_departure_time,
+        "arrivalTime": normalized_arrival_time,
         "languageCode": "en-US",
         "regionCode": "US",
     }
@@ -326,7 +326,7 @@ def get_transit_matrix(
         "areas": complete_areas,
         "traveler_ids": [origin["traveler_id"] for origin in validated_origins],
         "provider": "google_routes",
-        "departure_time": normalized_departure_time,
+        "arrival_time": normalized_arrival_time,
         "excluded_areas": excluded_areas,
         "unavailable_routes": unavailable_routes,
         "attribution": f"Powered by Google, ©{datetime.now(timezone.utc).year} Google",

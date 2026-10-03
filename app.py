@@ -28,8 +28,9 @@ For an origin-to-meeting-area request, use this order:
    is unresolved, ask only those travelers to clarify and stop the workflow.
 2. Call generate_candidate_areas with the exact resolved traveler records.
 3. Call get_transit_matrix with those origins, the generated candidates, and an
-   RFC 3339 meeting time with an explicit timezone offset. Ask for a specific
-   date or time when the request is ambiguous.
+   RFC 3339 arrival_time equal to when the group wants to meet. It must include
+   an explicit timezone offset. Never treat the meeting time as a departure time.
+   Ask for a specific date or time when the request is ambiguous.
 4. Pass the complete areas returned by get_transit_matrix unchanged to both
    score_fairest_option and score_fastest_option. Explain why the two objectives
    can select different winners and retain provider warnings and attribution.

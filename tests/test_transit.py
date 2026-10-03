@@ -76,7 +76,7 @@ def test_builds_transit_request_and_restores_matrix_order(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T14:00:00-04:00",
+        arrival_time="2026-10-03T14:00:00-04:00",
     )
 
     assert matrix["areas"] == [
@@ -94,7 +94,7 @@ def test_builds_transit_request_and_restores_matrix_order(monkeypatch):
         },
     ]
     assert matrix["traveler_ids"] == ["alice", "bob"]
-    assert matrix["departure_time"] == "2026-10-03T18:00:00Z"
+    assert matrix["arrival_time"] == "2026-10-03T18:00:00Z"
     assert matrix["excluded_areas"] == []
     assert matrix["unavailable_routes"] == []
     assert matrix["attribution"].startswith("Powered by Google, ©")
@@ -107,7 +107,8 @@ def test_builds_transit_request_and_restores_matrix_order(monkeypatch):
         "X-Goog-FieldMask": ROUTE_MATRIX_FIELD_MASK,
     }
     assert captured["json"]["travelMode"] == "TRANSIT"
-    assert captured["json"]["departureTime"] == "2026-10-03T18:00:00Z"
+    assert captured["json"]["arrivalTime"] == "2026-10-03T18:00:00Z"
+    assert "departureTime" not in captured["json"]
     assert len(captured["json"]["origins"]) == 2
     assert len(captured["json"]["destinations"]) == 2
     assert "test-server-key" not in json.dumps(matrix)
@@ -141,7 +142,7 @@ def test_excludes_area_with_any_unavailable_route(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
 
     assert [area["area"] for area in matrix["areas"]] == ["Herald Square"]
@@ -179,7 +180,7 @@ def test_missing_matrix_element_excludes_affected_area(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
 
     assert [area["area"] for area in matrix["areas"]] == ["Herald Square"]
@@ -208,7 +209,7 @@ def test_reports_error_when_no_area_is_complete(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
 
     assert matrix["areas"] == []
@@ -230,7 +231,7 @@ def test_reports_provider_http_error(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
     assert matrix == {
         "error": "Google Routes returned HTTP 403: Routes API is not enabled"
@@ -245,7 +246,7 @@ def test_reports_timeout(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
     assert matrix == {"error": "Google Routes timed out; try again"}
 
@@ -256,7 +257,7 @@ def test_missing_api_key_returns_actionable_error(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
     assert matrix == {
         "error": (
@@ -285,23 +286,23 @@ def test_invalid_origin_collections_return_errors(origins, expected_error):
     assert result(
         origins=origins,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     ) == {"error": expected_error}
 
 
 @pytest.mark.parametrize(
-    ("departure_time", "expected_error"),
+    ("arrival_time", "expected_error"),
     [
-        ("Saturday at 2pm", "departure_time must be an RFC 3339 timestamp"),
-        ("2026-10-03T14:00:00", "departure_time must include a timezone offset"),
-        (None, "departure_time must be an RFC 3339 timestamp"),
+        ("Saturday at 2pm", "arrival_time must be an RFC 3339 timestamp"),
+        ("2026-10-03T14:00:00", "arrival_time must include a timezone offset"),
+        (None, "arrival_time must be an RFC 3339 timestamp"),
     ],
 )
-def test_invalid_departure_time_returns_error(departure_time, expected_error):
+def test_invalid_arrival_time_returns_error(arrival_time, expected_error):
     assert result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time=departure_time,
+        arrival_time=arrival_time,
     ) == {"error": expected_error}
 
 
@@ -315,12 +316,12 @@ def test_rejects_duplicate_ids_and_areas():
     assert result(
         origins=duplicate_origins,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     ) == {"error": "duplicate traveler_id: ALICE"}
     assert result(
         origins=ORIGINS,
         candidate_areas=duplicate_areas,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     ) == {"error": "duplicate candidate area: union square"}
 
 
@@ -338,6 +339,6 @@ def test_rejects_duplicate_matrix_elements(monkeypatch):
     matrix = result(
         origins=ORIGINS,
         candidate_areas=CANDIDATE_AREAS,
-        departure_time="2026-10-03T18:00:00Z",
+        arrival_time="2026-10-03T18:00:00Z",
     )
     assert matrix == {"error": "Google Routes returned a duplicate matrix element"}
