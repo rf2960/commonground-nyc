@@ -13,8 +13,9 @@ includes the complete tool chain:
 - the Gemini tool-calling loop and session memory;
 - the required `/chat` response shape with visible tool calls;
 - Ruochen's tested `score_fairest_option` tool;
-- Andrew's tested location resolver, candidate generator, Google transit matrix,
-  and `score_fastest_option` tool;
+- Andrew's tested NYC-metro location resolver, candidate generator, Google
+  door-to-door transit matrix with driving fallback, and `score_fastest_option`
+  tool;
 - Yulia's tested Google Places cafe search and `score_best_cafe_option` tool,
   including meeting-time regular-hours estimates;
 - an integrated agent prompt that moves from origins to transit comparisons and
@@ -70,8 +71,12 @@ Set `GOOGLE_MAPS_API_KEY` in the server environment using a key restricted to
 Places API (New) and Routes API. The project must have both APIs enabled and
 working billing.
 Never put the key in frontend JavaScript, tool arguments, git, or screenshots.
-Location resolution uses Places Text Search (New), transit times use a Routes
-API transit matrix, and cafe search uses Nearby Search (New). Cafe search requests rating, review count, price and
+Location resolution uses Places Text Search (New) and accepts both exact places
+and broad NYC-metro areas. Commute comparison uses a Routes API transit matrix;
+Google transit durations can include walking links, buses, subways, trains, and
+transfers. A traffic-aware driving estimate is used only when a transit pair is
+unavailable and does not include rideshare pickup, parking, or drop-off time.
+Cafe search uses Nearby Search (New). Cafe search requests rating, review count, price and
 regular opening hours; requested fields affect billing.
 
 Meeting-time opening is estimated from structured regular weekly hours in

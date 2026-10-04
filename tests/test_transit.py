@@ -5,6 +5,7 @@ import pytest
 import requests
 
 from commonground.transit import (
+    DRIVE_ESTIMATE_LOOKBACK_MINUTES,
     REQUEST_TIMEOUT_SECONDS,
     ROUTE_MATRIX_FIELD_MASK,
     ROUTE_MATRIX_URL,
@@ -24,6 +25,7 @@ CANDIDATE_AREAS = [
 
 
 def result(**kwargs):
+    kwargs.setdefault("include_driving", False)
     return json.loads(get_transit_matrix(**kwargs))
 
 
@@ -342,3 +344,164 @@ def test_rejects_duplicate_matrix_elements(monkeypatch):
         arrival_time="2026-10-03T18:00:00Z",
     )
     assert matrix == {"error": "Google Routes returned a duplicate matrix element"}
+
+
+def test_uses_driving_only_for_missing_transit_pairs(monkeypatch):
+    captured = []
+
+    def fake_post(url, **kwargs):
+        captured.append(kwargs["json"])
+        if kwargs["json"]["travelMode"] == "TRANSIT":
+            return routes_response(
+                [
+                    {"condition": "ROUTE_EXISTS", "duration": "1200s"},
+                    {
+                        "destinationIndex": 1,
+                        "condition": "ROUTE_EXISTS",
+                        "duration": "1260s",
+                    },
+                    {"originIndex": 1, "condition": "ROUTE_NOT_FOUND"},
+                    {
+                        "originIndex": 1,
+                        "destinationIndex": 1,
+                        "condition": "ROUTE_EXISTS",
+                        "duration": "1320s",
+                    },
+                ]
+            )
+        return routes_response(
+            [
+                {"condition": "ROUTE_EXISTS", "duration": "900s"},
+                {
+                    "destinationIndex": 1,
+                    "condition": "ROUTE_EXISTS",
+                    "duration": "960s",
+                },
+                {
+                    "originIndex": 1,
+                    "condition": "ROUTE_EXISTS",
+                    "duration": "1080s",
+                },
+                {
+                    "originIndex": 1,
+                    "destinationIndex": 1,
+                    "condition": "ROUTE_EXISTS",
+                    "duration": "1020s",
+                },
+            ]
+        )
+
+    monkeypatch.setattr("commonground.transit.requests.post", fake_post)
+    matrix = json.loads(
+        get_transit_matrix(
+            origins=ORIGINS,
+            candidate_areas=CANDIDATE_AREAS,
+            arrival_time="2026-10-03T14:00:00-04:00",
+        )
+    )
+
+    assert [request["travelMode"] for request in captured] == ["TRANSIT", "DRIVE"]
+    assert captured[0]["arrivalTime"] == "2026-10-03T18:00:00Z"
+    assert "departureTime" not in captured[0]
+    assert captured[1]["departureTime"] == "2026-10-03T17:15:00Z"
+    assert captured[1]["routingPreference"] == "TRAFFIC_AWARE"
+    assert "arrivalTime" not in captured[1]
+    assert matrix["drive_estimate_lookback_minutes"] == (
+        DRIVE_ESTIMATE_LOOKBACK_MINUTES
+    )
+    assert matrix["excluded_areas"] == []
+    assert matrix["areas"][0]["commute_minutes"] == [20.0, 18.0]
+    assert matrix["areas"][0]["drive_fallback_count"] == 1
+    assert matrix["areas"][0]["commute_options"] == [
+        {
+            "traveler_id": "alice",
+            "transit_minutes": 20.0,
+            "drive_minutes": 15.0,
+            "selected_mode": "transit",
+            "effective_minutes": 20.0,
+        },
+        {
+            "traveler_id": "bob",
+            "transit_minutes": None,
+            "drive_minutes": 18.0,
+            "selected_mode": "drive_fallback",
+            "effective_minutes": 18.0,
+        },
+    ]
+    assert matrix["partial"] is True
+    assert matrix["unavailable_routes"] == []
+
+
+def test_returns_nonfatal_status_when_neither_mode_completes_an_area(monkeypatch):
+    def fake_post(url, **kwargs):
+        return routes_response(
+            [
+                {"condition": "ROUTE_NOT_FOUND"},
+                {"destinationIndex": 1, "condition": "ROUTE_NOT_FOUND"},
+                {"originIndex": 1, "condition": "ROUTE_NOT_FOUND"},
+                {
+                    "originIndex": 1,
+                    "destinationIndex": 1,
+                    "condition": "ROUTE_NOT_FOUND",
+                },
+            ]
+        )
+
+    monkeypatch.setattr("commonground.transit.requests.post", fake_post)
+    matrix = json.loads(
+        get_transit_matrix(
+            origins=ORIGINS,
+            candidate_areas=CANDIDATE_AREAS,
+            arrival_time="2026-10-03T18:00:00Z",
+        )
+    )
+
+    assert matrix["areas"] == []
+    assert matrix["status"] == "no_complete_commute_options"
+    assert "error" not in matrix
+    assert len(matrix["unavailable_routes"]) == 4
+    assert "Continue with cafe search" in matrix["message"]
+
+
+def test_falls_back_to_driving_when_transit_provider_request_fails(monkeypatch):
+    def fake_post(url, **kwargs):
+        if kwargs["json"]["travelMode"] == "TRANSIT":
+            return routes_response(
+                {"error": {"message": "Transit data unavailable"}},
+                status_code=503,
+            )
+        return routes_response(
+            [
+                {"condition": "ROUTE_EXISTS", "duration": "900s"},
+                {"destinationIndex": 1, "condition": "ROUTE_EXISTS", "duration": "960s"},
+                {"originIndex": 1, "condition": "ROUTE_EXISTS", "duration": "1080s"},
+                {"originIndex": 1, "destinationIndex": 1, "condition": "ROUTE_EXISTS", "duration": "1020s"},
+            ]
+        )
+
+    monkeypatch.setattr("commonground.transit.requests.post", fake_post)
+    matrix = json.loads(
+        get_transit_matrix(
+            origins=ORIGINS,
+            candidate_areas=CANDIDATE_AREAS,
+            arrival_time="2026-10-03T18:00:00Z",
+        )
+    )
+
+    assert len(matrix["areas"]) == 2
+    assert matrix["areas"][0]["drive_fallback_count"] == 2
+    assert matrix["mode_errors"]["transit"].startswith(
+        "Google Routes returned HTTP 503"
+    )
+
+
+def test_rejects_non_boolean_include_driving():
+    matrix = json.loads(
+        get_transit_matrix(
+            origins=ORIGINS,
+            candidate_areas=CANDIDATE_AREAS,
+            arrival_time="2026-10-03T18:00:00Z",
+            include_driving="yes",
+        )
+    )
+    assert matrix == {"error": "include_driving must be a boolean"}

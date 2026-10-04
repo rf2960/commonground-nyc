@@ -29,7 +29,7 @@ TOOLS = [
                 "properties": {
                     "options": {
                         "type": "array",
-                        "description": "Candidate areas and one transit time per traveler.",
+                        "description": "Candidate areas and one selected commute time per traveler.",
                         "items": {
                             "type": "object",
                             "properties": {
@@ -39,7 +39,7 @@ TOOLS = [
                                 },
                                 "commute_minutes": {
                                     "type": "array",
-                                    "description": "Transit minutes for every traveler.",
+                                    "description": "Selected commute minutes for every traveler.",
                                     "items": {"type": "number"},
                                     "minItems": 1,
                                 },
@@ -68,8 +68,10 @@ TOOLS.extend(
             "function": {
                 "name": "resolve_group_locations",
                 "description": (
-                    "Resolve 1-6 unverified NYC location queries to real Google "
-                    "Places records. Call this before generating candidate areas when "
+                    "Resolve 1-6 unverified NYC-metro location queries to real Google "
+                    "Places records. Broad neighborhoods are accepted as approximate "
+                    "origins; do not demand a station or exact address after resolution. "
+                    "Call this before generating candidate areas when "
                     "the user supplies addresses, landmarks, neighborhoods, "
                     "intersections, or subway stations. Never invent coordinates. If "
                     "any item is unresolved, ask only those travelers to clarify."
@@ -95,7 +97,7 @@ TOOLS.extend(
                                     "query": {
                                         "type": "string",
                                         "description": (
-                                            "The traveler's NYC origin exactly as "
+                                            "The traveler's NYC-metro origin exactly as "
                                             "provided or clarified by the user."
                                         ),
                                     },
@@ -156,12 +158,13 @@ TOOLS.extend(
             "function": {
                 "name": "get_transit_matrix",
                 "description": (
-                    "Compute real Google Routes public-transit times from every "
-                    "traveler to every candidate area. Call after candidate generation "
-                    "and use the requested meeting time as an RFC 3339 arrival time "
-                    "including a timezone offset. Never treat the meeting time as a "
-                    "departure time. Candidates missing any traveler route are excluded. "
-                    "Pass the returned complete areas unchanged to the scoring tools."
+                    "Compute real door-to-door Google Routes commute options from every "
+                    "traveler to every candidate area. Transit includes walking links, "
+                    "bus, subway, train, and transfers and is always preferred. With "
+                    "include_driving=true, driving is used only when transit is missing. "
+                    "Use the requested meeting time as an RFC 3339 transit arrival time "
+                    "with a timezone offset. Score returned areas with commute_minutes; "
+                    "explain commute_options, partial results, and every drive fallback."
                 ),
                 "parameters": {
                     "type": "object",
@@ -206,6 +209,16 @@ TOOLS.extend(
                                 "2026-10-03T14:00:00-04:00."
                             ),
                         },
+                        "include_driving": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": (
+                                "When true, compute traffic-aware driving estimates and "
+                                "use them only for origin/destination pairs without a "
+                                "transit route. Set false only when the user rejects car "
+                                "or rideshare fallback."
+                            ),
+                        },
                     },
                     "required": ["origins", "candidate_areas", "arrival_time"],
                 },
@@ -216,7 +229,7 @@ TOOLS.extend(
             "function": {
                 "name": "score_fastest_option",
                 "description": (
-                    "Rank candidate meeting areas by the lowest total group transit "
+                    "Rank candidate meeting areas by the lowest total selected commute "
                     "time, breaking ties by the lowest longest individual commute. Call "
                     "only with complete commute-time arrays returned by "
                     "get_transit_matrix."
@@ -228,7 +241,7 @@ TOOLS.extend(
                             "type": "array",
                             "minItems": 1,
                             "description": (
-                                "Candidate areas with one transit time per traveler. "
+                                "Candidate areas with one selected commute time per traveler. "
                                 "Every array must contain the same number of travelers."
                             ),
                             "items": {
@@ -243,7 +256,7 @@ TOOLS.extend(
                                         "minItems": 1,
                                         "items": {"type": "number"},
                                         "description": (
-                                            "Transit minutes in the traveler order "
+                                            "Selected commute minutes in the traveler order "
                                             "returned by get_transit_matrix."
                                         ),
                                     },

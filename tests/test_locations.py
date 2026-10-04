@@ -41,6 +41,7 @@ def test_resolves_location_and_sends_restricted_places_request(monkeypatch):
                     {
                         "id": "columbia-place-id",
                         "displayName": {"text": "Columbia University"},
+                        "primaryType": "university",
                         "formattedAddress": "116th and Broadway, New York, NY",
                         "location": {"latitude": 40.8075, "longitude": -73.9626},
                     }
@@ -62,6 +63,7 @@ def test_resolves_location_and_sends_restricted_places_request(monkeypatch):
                 "lat": 40.8075,
                 "lng": -73.9626,
                 "place_id": "columbia-place-id",
+                "location_precision": "specific_place",
             }
         ],
         "unresolved": [],
@@ -121,7 +123,7 @@ def test_preserves_successes_and_reports_unresolved_locations(monkeypatch):
         {
             "traveler_id": "bob",
             "query": "not a real NYC place",
-            "reason": "No matching place was found within New York City",
+            "reason": "No matching place was found within the NYC metro area",
         }
     ]
 
@@ -135,6 +137,7 @@ def test_uses_display_name_when_formatted_address_is_missing(monkeypatch):
                     {
                         "id": "neighborhood-id",
                         "displayName": {"text": "Astoria, Queens, NY"},
+                        "primaryType": "neighborhood",
                         "location": {"latitude": 40.7644, "longitude": -73.9235},
                     }
                 ]
@@ -147,6 +150,33 @@ def test_uses_display_name_when_formatted_address_is_missing(monkeypatch):
         resolved["resolved_locations"][0]["formatted_address"]
         == "Astoria, Queens, NY"
     )
+    assert resolved["resolved_locations"][0]["location_precision"] == "area_estimate"
+
+
+def test_accepts_fort_lee_as_nyc_metro_origin(monkeypatch):
+    monkeypatch.setattr(
+        "commonground.locations.requests.post",
+        lambda *args, **kwargs: places_response(
+            {
+                "places": [
+                    {
+                        "id": "fort-lee-id",
+                        "primaryType": "locality",
+                        "formattedAddress": "Fort Lee, NJ 07024, USA",
+                        "location": {"latitude": 40.8509, "longitude": -73.9701},
+                    }
+                ]
+            }
+        ),
+    )
+
+    resolved = result([{"traveler_id": "alice", "query": "Fort Lee"}])
+
+    assert resolved["unresolved"] == []
+    assert resolved["resolved_locations"][0]["formatted_address"] == (
+        "Fort Lee, NJ 07024, USA"
+    )
+    assert resolved["resolved_locations"][0]["location_precision"] == "area_estimate"
 
 
 def test_reports_provider_http_error_without_crashing(monkeypatch):
@@ -195,7 +225,7 @@ def test_reports_invalid_provider_data_as_unresolved(monkeypatch):
     resolved = result([{"traveler_id": "alice", "query": "Los Angeles"}])
     assert resolved["resolved_locations"] == []
     assert resolved["unresolved"][0]["reason"] == (
-        "Google Places result is outside New York City"
+        "Google Places result is outside the NYC metro area"
     )
 
 

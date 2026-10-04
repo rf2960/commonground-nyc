@@ -12,7 +12,8 @@ person develop and test with fixtures on a separate branch.
   "formatted_address": "116th and Broadway, New York, NY",
   "lat": 40.8075,
   "lng": -73.9626,
-  "place_id": "provider-specific-id"
+  "place_id": "provider-specific-id",
+  "location_precision": "specific_place"
 }
 ```
 
@@ -30,8 +31,9 @@ person develop and test with fixtures on a separate branch.
 ### `resolve_group_locations` — Andrew
 
 - Input: `locations: [{traveler_id, query}]`
-- Output: `{resolved_locations: [{traveler_id, input_location, formatted_address, lat, lng, place_id}], unresolved: []}`
-- Responsibility: resolve NYC addresses, landmarks, intersections, and subway stations.
+- Output: `{resolved_locations: [{traveler_id, input_location, formatted_address, lat, lng, place_id, location_precision}], unresolved: []}`
+- Responsibility: resolve NYC-metro addresses, landmarks, intersections, subway
+  stations, and broad neighborhoods. Broad areas are accepted as approximate origins.
 
 ### `generate_candidate_areas` — Andrew
 
@@ -42,11 +44,15 @@ person develop and test with fixtures on a separate branch.
 
 ### `get_transit_matrix` — Andrew
 
-- Input: `origins`, `candidate_areas`, `arrival_time` (the requested meeting time)
-- Output: `{areas: [{area, lat, lng, commute_minutes}], traveler_ids, provider, arrival_time, excluded_areas, unavailable_routes, attribution}`
-- Responsibility: one transit duration per traveler per candidate; exclude candidates
-  missing any traveler route, preserve traveler order, and calculate routes that arrive
-  by the meeting time rather than depart at the meeting time.
+- Input: `origins`, `candidate_areas`, `arrival_time` (the requested meeting time),
+  optional `include_driving=true`.
+- Output: `{areas: [{area, lat, lng, commute_minutes, commute_options, drive_fallback_count}], traveler_ids, provider, arrival_time, drive_departure_time, excluded_areas, unavailable_routes, mode_failures, mode_errors, partial, warnings, attribution}`.
+- Responsibility: calculate door-to-door transit durations, including provider walking
+  links, bus, subway, train, and transfers. Transit is preferred; when enabled,
+  traffic-aware driving estimates fill only missing transit pairs. Exclude a candidate
+  only when a traveler has neither mode. Driving approximates car/rideshare travel and
+  excludes pickup, parking, and drop-off time. If no candidate is complete, return a
+  non-fatal status so cafe search can continue without repeated user clarification.
 
 ### `search_cafes_in_areas` — Yulia (implemented)
 

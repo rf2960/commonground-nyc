@@ -40,6 +40,7 @@ def test_transit_tool_treats_meeting_time_as_arrival_time():
 
     assert "arrival_time" in properties
     assert "departure_time" not in properties
+    assert properties["include_driving"]["default"] is True
     assert "arrival_time" in definition["parameters"]["required"]
 
 
@@ -77,4 +78,8 @@ def test_system_prompt_contains_tool_order_and_safety_rules():
     assert positions == sorted(positions)
     assert "Never invent" in SYSTEM_PROMPT
     assert "explicit timezone offset" in SYSTEM_PROMPT
-    assert "Never treat the meeting time as a departure time" in SYSTEM_PROMPT
+    assert "Never treat the meeting time as a transit departure time" in SYSTEM_PROMPT
+    assert "door-to-door route" in SYSTEM_PROMPT
+    assert "never retry the same failed route request more than once" in SYSTEM_PROMPT
+    assert "commute scoring" in SYSTEM_PROMPT
+    assert "fewest drive_fallback_count" in SYSTEM_PROMPT

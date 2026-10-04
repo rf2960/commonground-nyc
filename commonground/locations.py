@@ -1,4 +1,4 @@
-"""Resolve user-supplied NYC locations with Google Places Text Search (New)."""
+"""Resolve user-supplied NYC-metro locations with Google Places Text Search."""
 
 from __future__ import annotations
 
@@ -12,15 +12,26 @@ import requests
 
 PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 PLACES_FIELD_MASK = (
-    "places.id,places.displayName,places.formattedAddress,places.location"
+    "places.id,places.displayName,places.formattedAddress,places.location,"
+    "places.primaryType"
 )
 REQUEST_TIMEOUT_SECONDS = 10
 MAX_GROUP_SIZE = 6
 
-# The NYC viewport from Google's Text Search (New) location-restriction example.
+# Covers the five boroughs plus common nearby commuter origins such as Fort Lee,
+# Hoboken, and Jersey City. Candidate meeting areas remain centered in NYC.
 NYC_VIEWPORT = {
-    "low": {"latitude": 40.477398, "longitude": -74.259087},
-    "high": {"latitude": 40.91618, "longitude": -73.70018},
+    "low": {"latitude": 40.45, "longitude": -74.35},
+    "high": {"latitude": 41.05, "longitude": -73.65},
+}
+
+AREA_PRIMARY_TYPES = {
+    "administrative_area_level_1",
+    "administrative_area_level_2",
+    "locality",
+    "neighborhood",
+    "postal_code",
+    "sublocality",
 }
 
 
@@ -98,7 +109,7 @@ def _resolved_place(place: Any, traveler_id: str, query: str) -> dict[str, Any]:
         low["latitude"] <= latitude <= high["latitude"]
         and low["longitude"] <= longitude <= high["longitude"]
     ):
-        raise ValueError("Google Places result is outside New York City")
+        raise ValueError("Google Places result is outside the NYC metro area")
 
     formatted_address = place.get("formattedAddress")
     if not isinstance(formatted_address, str) or not formatted_address.strip():
@@ -107,6 +118,11 @@ def _resolved_place(place: Any, traveler_id: str, query: str) -> dict[str, Any]:
     if not isinstance(formatted_address, str) or not formatted_address.strip():
         raise ValueError("Google Places result is missing a readable address")
 
+    primary_type = place.get("primaryType")
+    location_precision = (
+        "area_estimate" if primary_type in AREA_PRIMARY_TYPES else "specific_place"
+    )
+
     return {
         "traveler_id": traveler_id,
         "input_location": query,
@@ -114,6 +130,7 @@ def _resolved_place(place: Any, traveler_id: str, query: str) -> dict[str, Any]:
         "lat": float(latitude),
         "lng": float(longitude),
         "place_id": place_id,
+        "location_precision": location_precision,
     }
 
 
@@ -152,12 +169,12 @@ def _search_nyc_place(query: str, api_key: str) -> tuple[dict[str, Any] | None, 
 
     places = payload.get("places")
     if not isinstance(places, list) or not places:
-        return None, "No matching place was found within New York City"
+        return None, "No matching place was found within the NYC metro area"
     return places[0], None
 
 
 def resolve_group_locations(locations: list[dict[str, Any]]) -> str:
-    """Resolve 1-6 traveler location queries to verified NYC place records.
+    """Resolve 1-6 traveler queries to verified NYC-metro place records.
 
     Expected lookup failures are returned in ``unresolved`` so the agent can ask
     only the affected traveler for clarification. Configuration and malformed
