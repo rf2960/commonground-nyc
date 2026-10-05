@@ -13,6 +13,7 @@ def test_decision_summary_reads_all_three_scoring_tools():
     assert "score_fastest_option" in implementation
     assert "score_best_cafe_option" in implementation
     assert "Tool-derived results" in implementation
+    assert "Best cafe overall" in implementation
     assert "choosing it prioritizes cafe quality" in implementation
 
 
