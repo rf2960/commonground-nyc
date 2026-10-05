@@ -41,12 +41,14 @@ never commit `.env` or credentials.
 ## Sample grading queries
 
 1. “Four of us are coming from Columbia University, Astoria, Bedford Ave, and Jay
-   St-MetroTech. We want coffee Saturday at 2pm, moderate budget, rating at least
-   4.3. Give us a few good choices.”
+   St-MetroTech. We want coffee on October 10, 2026 at 2:00 PM Eastern Time,
+   moderate budget, rating at least 4.3. Compare the fairest and fastest areas,
+   then recommend qualifying cafes.”
 2. “Actually Bob is coming from Queensboro Plaza instead. Keep everyone else the
-   same and rerun it.”
+   same, preserve the date, time, and budget, and rerun the comparison.”
 3. “Using the same group and time, compare the fairest meeting area with the
-   fastest one, then recommend the best qualifying cafe near my preferred area.”
+   fastest one. Explain the commute trade-off, then recommend the best qualifying
+   cafe in the fairest area.”
 
 ## Team workflow
 
