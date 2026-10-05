@@ -9,6 +9,10 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from commonground.recommendations import (
+    build_recommendation_plans,
+    infer_preferred_objective,
+)
 from tools import TOOLS, run_tool
 
 
@@ -45,9 +49,20 @@ For a complete origin-to-cafe request, use this order:
    preserve the tool warnings, and explain why fairness and total travel time may
    select different winners. Never call driving an exact Uber ETA: pickup,
    parking, and drop-off time are not included.
-5. Call search_cafes_in_areas with the selected candidate-area coordinates and
+5. If the user explicitly prioritizes Fairest or Fastest, include that winner
+   area in cafe search and prefer the highest-ranked qualifying cafe inside it.
+   If the user gives no priority, search enough scored areas to support three
+   distinct outputs: Fairest plan, Fastest plan, and Best cafe plan. Do not turn
+   those into one unlabeled "best overall" recommendation.
+6. Call search_cafes_in_areas with the relevant candidate-area coordinates and
    the same meeting time, then pass its exact cafe records to
    score_best_cafe_option without manufacturing missing fields.
+
+The backend may provide an authoritative RECOMMENDATION_ALIGNMENT block after
+the scoring tools finish. Follow it exactly. If a cafe is outside a commute
+winner area, state the extra total group commute and extra longest commute from
+that block. Always retain transit-versus-driving fallback, partial results,
+failed routes, warnings, and attribution in the explanation.
 
 If the user asks only for cafes, resolve locations and generate areas, then skip
 commute scoring and search those areas directly. If no complete commute area is
@@ -67,6 +82,8 @@ only for information that can actually recover it.
 def run_agent(messages: list[dict]) -> tuple[str, list[dict]]:
     """Run Gemini until it answers without another tool request."""
     tool_calls: list[dict] = []
+    tool_results: dict[str, dict] = {}
+    alignment_injected = False
 
     for _ in range(MAX_TOOL_ROUNDS):
         reply = litellm.completion(
@@ -89,12 +106,47 @@ def run_agent(messages: list[dict]) -> tuple[str, list[dict]]:
             else:
                 result = run_tool(call.function.name, args)
 
+            try:
+                parsed_result = json.loads(result)
+            except (TypeError, json.JSONDecodeError):
+                parsed_result = None
+            if isinstance(parsed_result, dict) and "error" not in parsed_result:
+                tool_results[call.function.name] = parsed_result
+
             tool_calls.append(
                 {"name": call.function.name, "args": args, "result": result}
             )
             messages.append(
                 {"role": "tool", "tool_call_id": call.id, "content": result}
             )
+
+        required = {
+            "score_fairest_option",
+            "score_fastest_option",
+            "score_best_cafe_option",
+        }
+        if not alignment_injected and required.issubset(tool_results):
+            try:
+                alignment = build_recommendation_plans(
+                    tool_results["score_fairest_option"],
+                    tool_results["score_fastest_option"],
+                    tool_results["score_best_cafe_option"],
+                    preferred_objective=infer_preferred_objective(messages),
+                    transit=tool_results.get("get_transit_matrix"),
+                )
+            except (KeyError, TypeError, ValueError):
+                alignment = None
+            if alignment is not None:
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": (
+                            "RECOMMENDATION_ALIGNMENT (authoritative backend result):\n"
+                            + json.dumps(alignment, ensure_ascii=False)
+                        ),
+                    }
+                )
+                alignment_injected = True
 
     return "Sorry, I hit my tool-call limit before finishing.", tool_calls
 
