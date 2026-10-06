@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import uuid
 from pathlib import Path
 
@@ -19,6 +20,8 @@ from tools import TOOLS, run_tool
 MODEL = os.getenv("GEMINI_MODEL", "vertex_ai/gemini-3.5-flash-lite")
 VERTEX_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
 MAX_TOOL_ROUNDS = 8
+SESSION_TTL_SECONDS = max(60, int(os.getenv("SESSION_TTL_SECONDS", "7200")))
+MAX_SESSIONS = max(1, int(os.getenv("MAX_SESSIONS", "500")))
 
 SYSTEM_PROMPT = """You are CommonGround, an NYC group meeting-planning agent.
 Your job is to make the trade-off between fairness, total travel time, and cafe
@@ -152,12 +155,42 @@ def run_agent(messages: list[dict]) -> tuple[str, list[dict]]:
 
 
 sessions: dict[str, list[dict]] = {}
+session_last_seen: dict[str, float] = {}
 app = FastAPI(title="CommonGround NYC")
+
+
+def prune_sessions(now: float | None = None) -> None:
+    """Bound process-local chat memory without changing the response contract."""
+    current = time.monotonic() if now is None else now
+    expired = [
+        session_id
+        for session_id in sessions
+        if current - session_last_seen.get(session_id, 0) > SESSION_TTL_SECONDS
+    ]
+    for session_id in expired:
+        sessions.pop(session_id, None)
+        session_last_seen.pop(session_id, None)
+
+    overflow = len(sessions) - MAX_SESSIONS
+    if overflow > 0:
+        oldest = sorted(sessions, key=lambda key: session_last_seen.get(key, 0))
+        for session_id in oldest[:overflow]:
+            sessions.pop(session_id, None)
+            session_last_seen.pop(session_id, None)
+
+
+def make_session_room() -> None:
+    """Evict the least-recently-used session before accepting a new one."""
+    if len(sessions) < MAX_SESSIONS:
+        return
+    oldest = min(sessions, key=lambda key: session_last_seen.get(key, 0))
+    sessions.pop(oldest, None)
+    session_last_seen.pop(oldest, None)
 
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
-    session_id: str | None = None
+    session_id: str | None = Field(default=None, max_length=128)
 
 
 class ChatResponse(BaseModel):
@@ -173,14 +206,19 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": MODEL}
+    prune_sessions()
+    return {"status": "ok", "model": MODEL, "active_sessions": len(sessions)}
 
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+    now = time.monotonic()
+    prune_sessions(now)
     session_id = request.session_id or str(uuid.uuid4())
     if session_id not in sessions:
+        make_session_room()
         sessions[session_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    session_last_seen[session_id] = now
 
     sessions[session_id].append({"role": "user", "content": request.message})
 
@@ -201,6 +239,7 @@ def chat(request: ChatRequest):
 def clear(session_id: str | None = None):
     if session_id:
         sessions.pop(session_id, None)
+        session_last_seen.pop(session_id, None)
     return {"status": "ok"}
 
 

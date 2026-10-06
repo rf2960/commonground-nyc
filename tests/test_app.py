@@ -153,11 +153,39 @@ def test_chat_contains_model_failure_in_response(monkeypatch):
 
 def test_clear_removes_only_requested_session():
     webapp.sessions.clear()
+    webapp.session_last_seen.clear()
     webapp.sessions.update({"one": [], "two": []})
+    webapp.session_last_seen.update({"one": 1.0, "two": 2.0})
 
     assert webapp.clear("one") == {"status": "ok"}
     assert "one" not in webapp.sessions
+    assert "one" not in webapp.session_last_seen
     assert "two" in webapp.sessions
+
+
+def test_prune_sessions_expires_old_memory(monkeypatch):
+    webapp.sessions.clear()
+    webapp.session_last_seen.clear()
+    webapp.sessions.update({"old": [], "current": []})
+    webapp.session_last_seen.update({"old": 10.0, "current": 95.0})
+    monkeypatch.setattr(webapp, "SESSION_TTL_SECONDS", 20)
+
+    webapp.prune_sessions(now=100.0)
+
+    assert set(webapp.sessions) == {"current"}
+    assert set(webapp.session_last_seen) == {"current"}
+
+
+def test_make_session_room_evicts_least_recently_used(monkeypatch):
+    webapp.sessions.clear()
+    webapp.session_last_seen.clear()
+    webapp.sessions.update({"older": [], "newer": []})
+    webapp.session_last_seen.update({"older": 10.0, "newer": 20.0})
+    monkeypatch.setattr(webapp, "MAX_SESSIONS", 2)
+
+    webapp.make_session_room()
+
+    assert set(webapp.sessions) == {"newer"}
 
 
 @pytest.mark.parametrize("message", ["", "x" * 4001])

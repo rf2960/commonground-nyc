@@ -133,6 +133,17 @@
       .response-details { background:white; border:1px solid #dfe7ec; border-radius:14px; padding:14px 16px; }
       .response-details > .msg { border:0; padding:14px 0 0; max-width:100%; }
       .response-details .role { display:none; }
+      .decision-card.recommended { border-color:var(--mint); box-shadow:0 0 0 2px rgba(42,157,143,.14),0 10px 24px rgba(20,37,61,.08); }
+      .recommendation-flag { display:inline-flex; margin-bottom:8px; padding:4px 8px; border-radius:999px; background:#dff3ee; color:#176c62; font-size:.67rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+      .commute-impact { margin-top:14px; padding-top:12px; border-top:1px solid #e5ecef; }
+      .commute-impact h5 { margin:0 0 9px; font-size:.74rem; color:#42576b; }
+      .commute-row { display:grid; grid-template-columns:minmax(64px,.8fr) minmax(72px,1.5fr) auto; align-items:center; gap:7px; margin-top:7px; font-size:.7rem; }
+      .commute-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#526577; }
+      .commute-track { height:7px; overflow:hidden; border-radius:999px; background:#edf1f4; }
+      .commute-bar { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--mint),#66b8ae); }
+      .commute-value { color:#33465a; font-weight:800; white-space:nowrap; }
+      .copy-plan { padding:8px 11px; border:1px solid #c8d8d5; background:white; color:#216b61; font-size:.72rem; }
+      .copy-plan:hover { background:#edf7f4; }
       .results > p { font-size:.82rem; line-height:1.5; color:#657185; }
       .cafe-card.winner { border-color:#d6b69e; }
       .cafe-card.winner .badge { background:#fff2e9; color:#874d31; }
@@ -142,7 +153,8 @@
       .decision-grid { grid-template-columns:1fr; }
       .decision-card > p { min-height:0; }
       .decision-facts { margin-top:9px; }
-      .decision-heading { display:block; }
+      .decision-heading { align-items:center; }
+      .decision-heading-copy { min-width:0; }
       .decision-note { margin-top:5px; text-align:left; }
       .tool-list pre { max-width:100%; }
       @media(min-width:1100px) { .shell { width:min(1280px,calc(100% - 48px)); grid-template-columns:280px 1fr; } .decision-grid:not([data-count="1"]) { grid-template-columns:repeat(3,minmax(0,1fr)); } .decision-grid[data-count="2"] { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -167,6 +179,8 @@
         .composer { padding:10px 12px; padding-bottom:max(10px,env(safe-area-inset-bottom)); }
         .compose-row > button { padding:0 14px; }
         textarea { font-size:16px; max-height:110px; }
+        .decision-heading { align-items:flex-start; }
+        .copy-plan { flex-shrink:0; }
         .compose-help { font-size:.65rem; }
         .msg { max-width:95%; }
         .new-reply { bottom:120px; font-size:.8rem; }
@@ -188,6 +202,7 @@
         </div>
         <p class="mode-help" id="priority-label" aria-live="polite">No single priority selected.</p>
         <button type="button" class="compare-button" id="compare-btn">Compare all three</button>
+        <p class="mode-help">Seven transparent tools · live Google transit and cafe data.</p>
       </aside>
       <main>
         <header><button id="reset-btn" class="reset">New meetup</button><h2>Plan a meetup</h2><p>Tell me each origin, meeting time, budget, and what your group values.</p></header>
@@ -195,10 +210,10 @@
         <button type="button" id="new-reply" class="new-reply" hidden>View new reply ↓</button>
         <div class="composer">
           <div class="compose-row">
-            <textarea aria-label="Message CommonGround" aria-describedby="compose-help" id="user-input" rows="2" maxlength="3900" placeholder="Where is everyone coming from? Add a date, time, and budget." autocomplete="off"></textarea>
+            <textarea aria-label="Message CommonGround" aria-describedby="compose-help" id="user-input" rows="2" maxlength="3900" placeholder="Where is everyone coming from?" autocomplete="off"></textarea>
             <button type="button" id="send-btn">Send</button>
           </div>
-          <div class="compose-help" id="compose-help"><span id="compose-priority">Compare options, or choose a priority.</span><span>Enter to send · Shift + Enter for a new line</span></div>
+          <div class="compose-help" id="compose-help"><span id="compose-priority">Compare options, or choose a priority.</span><span>Add a date, time, and budget · Enter to send</span></div>
           <p id="compose-error" class="compose-error" role="alert" hidden></p>
         </div>
       </main>
@@ -417,17 +432,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       function minutes(value){return finite(value)?`${Number.isInteger(value)?value:value.toFixed(1)} min`:null;}
       function byArea(result,area){return result?.ranking?.find(entry=>entry.area===area)||null;}
       function fact(container,text){if(text)container.append(node('span','',text));}
-      function decisionCard(kind,label,title,description,facts){const card=node('article',`decision-card ${kind}`);card.append(node('div','decision-label',label),node('h4','',title||'Not available'),node('p','',description));const row=node('div','decision-facts');for(const item of facts)fact(row,item);if(row.childNodes.length)card.append(row);return card;}
-      function decisionSummary(calls){let fairest=null,fastest=null,best=null,found=null;for(const call of calls){const result=parsed(call.result);if(!result||result.error)continue;if(call.name==='score_fairest_option'&&Array.isArray(result.ranking))fairest=result;if(call.name==='score_fastest_option'&&Array.isArray(result.ranking))fastest=result;if(call.name==='score_best_cafe_option'&&Array.isArray(result.ranking))best=result;if(call.name==='search_cafes_in_areas'&&Array.isArray(result.cafes))found=result;}
+      function decisionCard(kind,label,title,description,facts,recommended=false){const card=node('article',`decision-card ${kind}${recommended?' recommended':''}`);if(recommended)card.append(node('span','recommendation-flag','Recommended for your priority'));card.append(node('div','decision-label',label),node('h4','',title||'Not available'),node('p','',description));const row=node('div','decision-facts');for(const item of facts)fact(row,item);if(row.childNodes.length)card.append(row);return card;}
+      function commuteImpact(transit,area){const match=transit?.areas?.find(item=>item.area===area),ids=transit?.traveler_ids;if(!match||!Array.isArray(ids)||!Array.isArray(match.commute_minutes)||ids.length!==match.commute_minutes.length)return null;const values=match.commute_minutes.map(Number);if(values.some(value=>!Number.isFinite(value)))return null;const box=node('div','commute-impact'),max=Math.max(...values,1);box.append(node('h5','','Who carries the trip?'));values.forEach((value,index)=>{const option=match.commute_options?.[index],row=node('div','commute-row'),name=node('span','commute-name',ids[index]||`Traveler ${index+1}`),track=node('span','commute-track'),bar=node('span','commute-bar'),suffix=option?.selected_mode==='drive_fallback'?' · drive estimate':'';bar.style.width=`${Math.max(5,value/max*100)}%`;track.append(bar);row.append(name,track,node('span','commute-value',`${minutes(value)}${suffix}`));box.append(row);});return box;}
+      function decisionSummary(calls){let fairest=null,fastest=null,best=null,found=null,transit=null;for(const call of calls){const result=parsed(call.result);if(!result||result.error)continue;if(call.name==='score_fairest_option'&&Array.isArray(result.ranking))fairest=result;if(call.name==='score_fastest_option'&&Array.isArray(result.ranking))fastest=result;if(call.name==='score_best_cafe_option'&&Array.isArray(result.ranking))best=result;if(call.name==='search_cafes_in_areas'&&Array.isArray(result.cafes))found=result;if(call.name==='get_transit_matrix'&&Array.isArray(result.areas))transit=result;}
         if(!fairest&&!fastest&&!best)return null;
-        const section=node('section','decision-summary'),heading=node('div','decision-heading'),title=node('h3','','Compare the three priorities'),titleGroup=node('div');titleGroup.append(node('div','decision-kicker','Decision summary'),title);heading.append(titleGroup,node('div','decision-note','Tool-derived results · details remain available below'));section.append(heading);
+        const section=node('section','decision-summary'),heading=node('div','decision-heading'),title=node('h3','',selectedPriority?`${priorityNames[selectedPriority]} recommendation`:'Compare the three priorities'),titleGroup=node('div','decision-heading-copy');titleGroup.append(node('div','decision-kicker','Decision summary'),title,node('div','decision-note','Tool-derived results · compare the human impact before choosing'));const copy=node('button','copy-plan','Copy plan');copy.type='button';copy.addEventListener('click',async()=>{const original=copy.textContent;try{await navigator.clipboard.writeText(section.innerText.replace('Copy plan','').trim());copy.textContent='Copied';}catch{copy.textContent='Copy unavailable';}setTimeout(()=>{copy.textContent=original;},1800);});heading.append(titleGroup,copy);section.append(heading);
         const grid=node('div','decision-grid');
         const fairWinner=fairest?byArea(fairest,fairest.selected_area)||fairest.ranking[0]:null;
-        if(fairWinner)grid.append(decisionCard('fairest','Fairest area',fairest.selected_area,'Protects the traveler with the hardest trip.',[minutes(fairWinner.max_commute_minutes)&&`${minutes(fairWinner.max_commute_minutes)} longest`,minutes(fairWinner.commute_spread_minutes)&&`${minutes(fairWinner.commute_spread_minutes)} spread`,Number.isInteger(fairWinner.hard_limit_violations)?`${fairWinner.hard_limit_violations} over ${fairest.hard_limit_minutes||60} min`:null]));
+        if(fairWinner){const card=decisionCard('fairest','Fairest area',fairest.selected_area,'Protects the traveler with the hardest trip.',[minutes(fairWinner.max_commute_minutes)&&`${minutes(fairWinner.max_commute_minutes)} longest`,minutes(fairWinner.commute_spread_minutes)&&`${minutes(fairWinner.commute_spread_minutes)} spread`,Number.isInteger(fairWinner.hard_limit_violations)?`${fairWinner.hard_limit_violations} over ${fairest.hard_limit_minutes||60} min`:null],selectedPriority==='fairest');if(selectedPriority==='fairest'){const impact=commuteImpact(transit,fairest.selected_area);if(impact)card.append(impact);}grid.append(card);}
         const fastWinner=fastest?byArea(fastest,fastest.selected_area)||fastest.ranking[0]:null;
-        if(fastWinner)grid.append(decisionCard('fastest','Fastest area',fastest.selected_area,'Minimizes total travel for the whole group.',[minutes(fastWinner.total_commute_minutes)&&`${minutes(fastWinner.total_commute_minutes)} total`,minutes(fastWinner.average_commute_minutes)&&`${minutes(fastWinner.average_commute_minutes)} average`,minutes(fastWinner.max_commute_minutes)&&`${minutes(fastWinner.max_commute_minutes)} longest`]));
+        if(fastWinner){const card=decisionCard('fastest','Fastest area',fastest.selected_area,'Minimizes total travel for the whole group.',[minutes(fastWinner.total_commute_minutes)&&`${minutes(fastWinner.total_commute_minutes)} total`,minutes(fastWinner.average_commute_minutes)&&`${minutes(fastWinner.average_commute_minutes)} average`,minutes(fastWinner.max_commute_minutes)&&`${minutes(fastWinner.max_commute_minutes)} longest`],selectedPriority==='fastest');if(selectedPriority==='fastest'){const impact=commuteImpact(transit,fastest.selected_area);if(impact)card.append(impact);}grid.append(card);}
         const bestEntry=best?.ranking?.[0]||null;let cafe=best?.selected_cafe||bestEntry?.cafe||null;if(cafe?.place_id&&found?.cafes){cafe={...(found.cafes.find(item=>item.place_id===cafe.place_id)||{}),...cafe};}const adjusted=bestEntry?.factor_breakdown?.adjusted_rating;
-        if(cafe)grid.append(decisionCard('cafe','Best cafe overall',cafe.name,cafe.area?`Highest-ranked qualifying cafe in ${cafe.area}.`:'Highest-ranked cafe passing the group constraints.',[finite(cafe.rating)?`★ ${cafe.rating.toFixed(1)}`:null,Number.isInteger(cafe.review_count)?`${cafe.review_count.toLocaleString()} reviews`:null,finite(adjusted)?`${adjusted.toFixed(2)} adjusted`:null]));
+        if(cafe){const card=decisionCard('cafe','Best cafe overall',cafe.name,cafe.area?`Highest-ranked qualifying cafe in ${cafe.area}.`:'Highest-ranked cafe passing the group constraints.',[finite(cafe.rating)?`★ ${cafe.rating.toFixed(1)}`:null,Number.isInteger(cafe.review_count)?`${cafe.review_count.toLocaleString()} reviews`:null,finite(adjusted)?`${adjusted.toFixed(2)} adjusted`:null],selectedPriority==='best_cafe');if(selectedPriority==='best_cafe'&&cafe.area){const impact=commuteImpact(transit,cafe.area);if(impact)card.append(impact);}grid.append(card);}
         const count=grid.childElementCount;grid.dataset.count=String(count);if(count===1)title.textContent=best&&!fairest&&!fastest?'Cafe quality result':'Meeting-area result';section.append(grid);
         const fairArea=fairest?.selected_area,fastArea=fastest?.selected_area,cafeArea=cafe?.area;const notes=[];
         if(fairArea&&fastArea)notes.push(fairArea===fastArea?`${fairArea} wins on both fairness and group speed.`:`${fairArea} protects the worst commute, while ${fastArea} minimizes total group travel.`);
@@ -441,7 +457,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       function resultCards(calls){let scored=null,found=null;for(const call of calls){const r=parsed(call.result);if(!r||r.error)continue;if(call.name==='score_best_cafe_option'&&Array.isArray(r.ranking))scored=r;if(call.name==='search_cafes_in_areas'&&Array.isArray(r.cafes))found=r;}
         const entries=scored?scored.ranking:(found?.cafes||[]).map(cafe=>({cafe}));if(!entries.length)return null;
         const section=node('section','results');section.append(node('h3','',scored?'Cafe recommendations':'Cafes found · not yet ranked'));section.append(node('p','','Cafe-quality ranking across searched areas. The top cafe may differ from the cafe in your chosen commute plan.'));const grid=node('div','cafe-grid');const metadata=new Map((found?.cafes||[]).map(c=>[c.place_id,c]));entries.slice(0,4).forEach((entry,i)=>{const c=entry.cafe||{};const cafe={...(c.place_id?metadata.get(c.place_id):{}),...c};grid.append(cafeCard(cafe,entry,!!scored&&i===0));});section.append(grid);if(entries.length>4)section.append(node('p','',`${entries.length-4} additional candidates are available in the tool results.`));return section;}
-      function resizeInput(){input.style.height='auto';input.style.height=`${Math.min(input.scrollHeight,matchMedia('(max-width:760px)').matches?110:150)}px`;}
+      function resizeInput(){const limit=matchMedia('(max-width:760px)').matches?110:150;input.style.height='auto';input.style.height=`${Math.min(input.scrollHeight,limit)}px`;input.style.overflowY=input.scrollHeight>limit?'auto':'hidden';}
       function choosePriority(priority,explicit=true){
         selectedPriority=priority;comparePending=explicit&&!priority;
         for(const b of modeButtons)b.setAttribute('aria-pressed',String(b.dataset.priority===priority));
@@ -468,7 +484,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         return ()=>{timers.forEach(clearTimeout);content.removeAttribute('role');};
       }
       function fullResponse(el){
-        const detail=node('details','response-details');detail.append(node('summary','','Read full assistant response · explanation and caveats'));
+        const detail=node('details','response-details');detail.open=true;detail.append(node('summary','','Why this recommendation · explanation and caveats'));
         el.before(detail);detail.append(el);return detail;
       }
       let latestResult=null;
@@ -479,7 +495,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const message=text+suffix;
         if(message.length>4000){composeError.hidden=false;composeError.textContent='Please shorten your message to fewer than 3,900 characters.';return;}
         composeError.hidden=true;newReply.hidden=true;setBusy(true);input.value='';resizeInput();
-        addMessage('you',message);const loading=addMessage('CommonGround','',true);const stopLoading=startLoading(loading);
+        addMessage('you',text);const loading=addMessage('CommonGround','',true);const stopLoading=startLoading(loading);
         messages.scrollTop=messages.scrollHeight;
         try{
           const response=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,session_id:sessionId})});
@@ -517,11 +533,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       intro();
       // Explicit preview fixtures: never presented as a live search result.
       if(new URLSearchParams(location.search).get('demo')==='1'){
+        choosePriority('fairest');
         messages.append(node('p','sample-note','Sample layout only · fictional cafes and example data.'));
         const example={selected_cafe:{name:'Example Cafe A',area:'Union Square',rating:4.6,review_count:500,price_level:2},explanation:'Example Cafe A wins on review-adjusted quality within the group budget.',ranking:[{cafe:{name:'Example Cafe A',area:'Union Square',address:'Example address, Manhattan',rating:4.6,review_count:500,price_level:2,open_at_meeting_time:null},factor_breakdown:{adjusted_rating:4.5455}},{cafe:{name:'Example Cafe B',area:'Union Square',rating:4.5,review_count:100,price_level:1,open_at_meeting_time:null},factor_breakdown:{adjusted_rating:4.3333}}]};
         const fair={selected_area:'Union Square',hard_limit_minutes:60,ranking:[{area:'Union Square',max_commute_minutes:31,commute_spread_minutes:8,hard_limit_violations:0},{area:'SoHo',max_commute_minutes:39,commute_spread_minutes:17,hard_limit_violations:0}]};
         const fast={selected_area:'SoHo',ranking:[{area:'SoHo',total_commute_minutes:62,average_commute_minutes:20.7,max_commute_minutes:39},{area:'Union Square',total_commute_minutes:67,average_commute_minutes:22.3,max_commute_minutes:31}]};
-        const calls=[{name:'score_fairest_option',args:{},result:JSON.stringify(fair)},{name:'score_fastest_option',args:{},result:JSON.stringify(fast)},{name:'score_best_cafe_option',args:{price_levels:[1,2]},result:JSON.stringify(example)}];messages.append(decisionSummary(calls),resultCards(calls),toolLog(calls));
+        const transit={traveler_ids:['Alex','Blair','Casey'],areas:[{area:'Union Square',commute_minutes:[18,27,31],commute_options:[{selected_mode:'transit'},{selected_mode:'transit'},{selected_mode:'transit'}]},{area:'SoHo',commute_minutes:[14,20,28]}]};
+        const calls=[{name:'get_transit_matrix',args:{},result:JSON.stringify(transit)},{name:'score_fairest_option',args:{},result:JSON.stringify(fair)},{name:'score_fastest_option',args:{},result:JSON.stringify(fast)},{name:'score_best_cafe_option',args:{price_levels:[1,2]},result:JSON.stringify(example)}];messages.append(decisionSummary(calls),resultCards(calls),toolLog(calls));
         const preview=addMessage('CommonGround','');
         fullResponse(preview);
         renderAssistant(preview.querySelector('.content'),'### Example recommendation\n**Example Cafe A** is our sample choice.\n\n- Rating: **4.6**\n- Price: $$\n- Hours: check before going.\n\n---\nThis is fictional preview data, not a live recommendation.');

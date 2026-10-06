@@ -5,6 +5,22 @@ between **fairness**, **speed**, and **cafe quality**. It is not just a midpoint
 finder: the same group can receive three different recommendations depending on the
 objective it values.
 
+**[Try the deployed agent](https://commonground-nyc-1053619589756.us-east1.run.app)**
+
+The product question is deliberately human rather than geometric: *who carries the
+cost of getting everyone together?* CommonGround shows the fairest area, the fastest
+area, and the strongest cafe option side by side, including how much travel time a
+cafe-quality choice adds or saves.
+
+## How to use it
+
+1. Enter 2–6 origins plus a specific future date and meeting time.
+2. Add a budget or minimum rating, then choose **Fairest**, **Fastest**, **Best cafe**,
+   or compare all three.
+3. Inspect the per-person commute impact, cafe evidence, caveats, and the complete
+   tool-call trace. Use a follow-up message to move one traveler or change a constraint;
+   **New meetup** starts a separate session.
+
 ## What is implemented
 
 This repository is built from the course's `gemini-web-tool-calling` starter and
@@ -20,7 +36,24 @@ includes the complete tool chain:
   including meeting-time regular-hours estimates;
 - an integrated agent prompt that moves from origins to transit comparisons and
   then to cafe recommendations without inventing provider data;
-- a Cloud Run-ready Dockerfile.
+- a decision UI that makes the three objectives and per-person commute burden visible;
+- a Cloud Run-ready Dockerfile with continuous deployment from GitHub.
+
+## Seven-tool workflow
+
+| Stage | Tool | Team contribution |
+| --- | --- | --- |
+| Understand origins | `resolve_group_locations` | Andrew |
+| Shortlist hubs | `generate_candidate_areas` | Andrew |
+| Measure real travel | `get_transit_matrix` | Andrew; Google Routes external data |
+| Protect the hardest trip | `score_fairest_option` | Ruochen's original objective tool |
+| Minimize group travel | `score_fastest_option` | Andrew's original objective tool |
+| Find real cafes | `search_cafes_in_areas` | Yulia; Google Places external data |
+| Rank cafe evidence | `score_best_cafe_option` | Yulia's original objective tool |
+
+The final recommendation is not delegated to unverified model arithmetic. The backend
+builds an authoritative alignment across the three scoring outputs, while the model
+explains the trade-off and preserves provider warnings.
 
 ## Setup
 
@@ -65,6 +98,15 @@ overwrite one another's work.
 - Tool name, arguments, and result are visible in the UI.
 - `submission.json` contains every Columbia UNI/email and the deployed Cloud Run URL.
 - The public Cloud Run URL works without grader setup and remains live until grades.
+
+## Operational notes
+
+The public MVP keeps conversations isolated by `session_id`, expires inactive
+process-local sessions after two hours, and bounds the number retained by each Cloud
+Run instance. This is enough for the course interaction model but is not durable storage:
+a production version should use a TTL-backed store such as Firestore if conversations
+must survive instance restarts. Restrict the Google Maps key to Places API (New) and
+Routes API, keep Cloud Run scaling and API quotas bounded, and configure billing alerts.
 
 
 ## Google Maps data setup
