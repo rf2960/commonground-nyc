@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -101,6 +101,78 @@
       .markdown table { border-collapse:collapse; font-size:.85em; }
       .markdown th,.markdown td { border:1px solid #dfe7ec; padding:7px 9px; text-align:left; }
       .markdown th { background:#edf7f4; }
+
+      /* A bounded conversation keeps the composer reachable at every viewport. */
+      .shell { height:calc(100dvh - 48px); min-height:0; margin:24px auto; }
+      aside { min-width:0; overflow-y:auto; }
+      h1 { font-size:1.5rem; line-height:1.1; overflow-wrap:anywhere; }
+      main { min-height:0; position:relative; }
+      header { flex-shrink:0; }
+      #messages { position:relative; min-height:0; max-height:none; overscroll-behavior:contain; scrollbar-gutter:stable; }
+      .modes .mode { width:100%; padding:14px; background:transparent; color:#dce6f2; text-align:left; font-weight:400; line-height:1.45; transition:background .15s,border-color .15s; }
+      .mode strong { color:white; font-size:.9rem; }
+      .mode:hover { background:rgba(255,255,255,.07); }
+      .mode[aria-pressed="true"] { background:#244c55; border-color:#9fd8d1; box-shadow:inset 3px 0 #9fd8d1; }
+      .mode-help { margin:12px 0 6px; font-size:.77rem; color:#c1d4df; }
+      .compare-button { color:#bce9df; background:transparent; padding:6px 0; font-size:.8rem; text-decoration:underline; text-underline-offset:3px; }
+      .composer { display:block; flex-shrink:0; padding:14px 24px; padding-bottom:max(14px,env(safe-area-inset-bottom)); background:white; }
+      .compose-row { display:flex; align-items:flex-end; gap:10px; }
+      textarea { flex:1; min-width:0; width:100%; min-height:58px; max-height:150px; resize:none; overflow-y:auto; padding:13px 15px; border:1px solid #ccd5e1; border-radius:12px; font:inherit; line-height:1.45; color:var(--navy); background:white; }
+      textarea:focus { outline:none; border-color:var(--mint); box-shadow:0 0 0 3px rgba(42,157,143,.12); }
+      .compose-row > button { min-height:52px; padding:0 20px; }
+      .compose-help { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; font-size:.72rem; color:#657185; margin:8px 2px 0; }
+      .compose-error { margin:6px 2px 0; color:#a63823; font-size:.8rem; }
+      .new-reply { position:absolute; bottom:136px; left:50%; transform:translateX(-50%); z-index:2; padding:10px 16px; background:var(--navy); box-shadow:0 4px 16px #14253d33; }
+      [hidden] { display:none !important; }
+      .msg.assistant { max-width:100%; }
+      .loading { display:flex; align-items:center; gap:10px; }
+      .loading .role { display:none; }
+      .loading .content { color:#526577; font-size:.85rem; }
+      .loading::before { content:''; width:16px; height:16px; flex-shrink:0; border:2px solid #cde0db; border-top-color:var(--mint); border-radius:50%; animation:spin .9s linear infinite; }
+      @keyframes spin { to { transform:rotate(360deg); } }
+      .response-details { background:white; border:1px solid #dfe7ec; border-radius:14px; padding:14px 16px; }
+      .response-details > .msg { border:0; padding:14px 0 0; max-width:100%; }
+      .response-details .role { display:none; }
+      .results > p { font-size:.82rem; line-height:1.5; color:#657185; }
+      .cafe-card.winner { border-color:#d6b69e; }
+      .cafe-card.winner .badge { background:#fff2e9; color:#874d31; }
+      .cafe-details { margin-top:10px; }
+      .cafe-details summary { font-size:.75rem; color:#526577; }
+      .decision-grid[data-count="1"] { grid-template-columns:1fr; }
+      .decision-grid { grid-template-columns:1fr; }
+      .decision-card > p { min-height:0; }
+      .decision-facts { margin-top:9px; }
+      .decision-heading { display:block; }
+      .decision-note { margin-top:5px; text-align:left; }
+      .tool-list pre { max-width:100%; }
+      @media(min-width:1100px) { .shell { width:min(1280px,calc(100% - 48px)); grid-template-columns:280px 1fr; } .decision-grid:not([data-count="1"]) { grid-template-columns:repeat(3,minmax(0,1fr)); } .decision-grid[data-count="2"] { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media(max-width:760px) {
+        .shell { display:flex; flex-direction:column; width:100%; height:100dvh; margin:0; border-radius:0; }
+        aside { overflow:visible; padding:16px 16px 12px; flex-shrink:0; }
+        .eyebrow { font-size:.6rem; }
+        h1 { font-size:1.3rem; line-height:1.1; margin:5px 0 10px; }
+        aside > p { display:none; }
+        .modes { margin-top:0; gap:7px; }
+        .modes .mode { padding:9px 7px; font-size:.67rem; }
+        .mode strong { font-size:.78rem; }
+        .mode-help { display:block; margin:8px 0 0; font-size:.7rem; }
+        .compare-button { font-size:.7rem; padding:4px 0 0; }
+        main { flex:1; }
+        header { padding:12px 16px; }
+        header h2 { font-size:.95rem; }
+        header p { font-size:.75rem; max-width:85%; }
+        header .reset { font-size:.7rem; padding:7px 9px; }
+        #messages { padding:16px; gap:12px; }
+        .cafe-grid,.decision-grid,.decision-grid[data-count="2"] { grid-template-columns:1fr; }
+        .composer { padding:10px 12px; padding-bottom:max(10px,env(safe-area-inset-bottom)); }
+        .compose-row > button { padding:0 14px; }
+        textarea { font-size:16px; max-height:110px; }
+        .compose-help { font-size:.65rem; }
+        .msg { max-width:95%; }
+        .new-reply { bottom:120px; font-size:.8rem; }
+      }
+      @media(max-width:380px), (max-height:620px) and (max-width:760px) { .mode-description,.eyebrow { display:none; } .modes .mode { padding:7px; } h1 { margin:0 0 7px; } header p { display:none; } aside { padding:10px 12px; } }
+      @media(prefers-reduced-motion:reduce) { .loading::before { animation:none; } .modes .mode { transition:none; } }
     </style>
   </head>
   <body>
@@ -109,18 +181,25 @@
         <div class="eyebrow">Agentic AI · Project 1</div>
         <h1>CommonGround NYC</h1>
         <p>Find the meeting spot that is fair to people, not just central on a map.</p>
-        <div class="modes">
-          <div class="mode"><strong>Fairest</strong>Protect the worst commute.</div>
-          <div class="mode"><strong>Fastest</strong>Save total group time.</div>
-          <div class="mode"><strong>Best cafe</strong>Prioritize venue quality.</div>
+        <div class="modes" role="group" aria-label="Meeting priority">
+          <button type="button" class="mode" data-priority="fairest" aria-pressed="false"><strong>Fairest</strong><span class="mode-description">Protect the worst commute.</span></button>
+          <button type="button" class="mode" data-priority="fastest" aria-pressed="false"><strong>Fastest</strong><span class="mode-description">Save total group time.</span></button>
+          <button type="button" class="mode" data-priority="best_cafe" aria-pressed="false"><strong>Best cafe</strong><span class="mode-description">Prioritize venue quality.</span></button>
         </div>
+        <p class="mode-help" id="priority-label" aria-live="polite">No single priority selected.</p>
+        <button type="button" class="compare-button" id="compare-btn">Compare all three</button>
       </aside>
       <main>
         <header><button id="reset-btn" class="reset">New meetup</button><h2>Plan a meetup</h2><p>Tell me each origin, meeting time, budget, and what your group values.</p></header>
         <div id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+        <button type="button" id="new-reply" class="new-reply" hidden>View new reply ↓</button>
         <div class="composer">
-          <input aria-label="Message CommonGround" id="user-input" placeholder="Four of us are coming from…" autocomplete="off" />
-          <button id="send-btn">Send</button>
+          <div class="compose-row">
+            <textarea aria-label="Message CommonGround" aria-describedby="compose-help" id="user-input" rows="2" maxlength="3900" placeholder="Where is everyone coming from? Add a date, time, and budget." autocomplete="off"></textarea>
+            <button type="button" id="send-btn">Send</button>
+          </div>
+          <div class="compose-help" id="compose-help"><span id="compose-priority">Compare options, or choose a priority.</span><span>Enter to send · Shift + Enter for a new line</span></div>
+          <p id="compose-error" class="compose-error" role="alert" hidden></p>
         </div>
       </main>
     </div>
@@ -250,7 +329,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     </script>
     <script>
       const messages=document.getElementById('messages'), input=document.getElementById('user-input'), button=document.getElementById('send-btn'), reset=document.getElementById('reset-btn');
-      let sessionId=null, busy=false;
+      let sessionId=null, busy=false, selectedPriority=null, comparePending=false;
+      const modeButtons=[...document.querySelectorAll('[data-priority]')], compareButton=document.getElementById('compare-btn');
+      const priorityLabel=document.getElementById('priority-label'), composePriority=document.getElementById('compose-priority'), composeError=document.getElementById('compose-error'), newReply=document.getElementById('new-reply');
+      const priorityNames={fairest:'Fairest',fastest:'Fastest',best_cafe:'Best cafe'};
       const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
       const parsed=value=>{try{return typeof value==='string'?JSON.parse(value):value;}catch{return null;}};
       const pretty=value=>JSON.stringify(parsed(value)??value,null,2);
@@ -328,7 +410,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       function intro(){const el=node('section','intro');el.append(node('h3','', 'A better place to meet.'),node('p','','Share 2–6 starting locations, a date and time, your budget, and whether you care most about fairness, speed, or the cafe.'));const choices=node('div','suggestions');for(const [label,text] of [
         ['Plan a group meetup','We are coming from Columbia University, Astoria, and Bedford Ave Station. Help us plan coffee this Saturday at 2pm, moderate budget, minimum rating 4.3.'],
         ['Compare cafe quality','Compare these example cafes: A has rating 4.9 with 2 reviews; B has rating 4.6 with 500 reviews. Both are price level 2 and open at our meeting time. Use the cafe scoring tool.']
-      ]){const b=node('button','',label);b.addEventListener('click',()=>{input.value=text;input.focus();});choices.append(b);}el.append(choices);messages.append(el);}
+      ]){const b=node('button','',label);b.addEventListener('click',()=>{input.value=text;resizeInput();input.focus();});choices.append(b);}el.append(choices);messages.append(el);}
       function toolLog(calls){const group=node('details','tool-list');group.append(node('summary','',`${calls.length} tool call${calls.length===1?'':'s'} · inspect inputs and results`));for(const call of calls){const d=node('details');d.append(node('summary','',call.name||'Tool'),node('h4','','Arguments'),node('pre','',pretty(call.args)),node('h4','','Result'),node('pre','',pretty(call.result)));group.append(d);}return group;}
       function safeLink(value){try{const u=new URL(value);return u.protocol==='https:'?u.href:null;}catch{return null;}}
       function finite(value){return typeof value==='number'&&Number.isFinite(value);}
@@ -349,19 +431,90 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const count=grid.childElementCount;grid.dataset.count=String(count);if(count===1)title.textContent=best&&!fairest&&!fastest?'Cafe quality result':'Meeting-area result';section.append(grid);
         const fairArea=fairest?.selected_area,fastArea=fastest?.selected_area,cafeArea=cafe?.area;const notes=[];
         if(fairArea&&fastArea)notes.push(fairArea===fastArea?`${fairArea} wins on both fairness and group speed.`:`${fairArea} protects the worst commute, while ${fastArea} minimizes total group travel.`);
-        if(cafeArea){if(cafeArea===fairArea&&cafeArea===fastArea)notes.push(`The top cafe is also in ${cafeArea}, so no objective trade-off is needed.`);else if(cafeArea===fairArea)notes.push(`The top cafe is in the fairest area, but not the fastest one.`);else if(cafeArea===fastArea)notes.push(`The top cafe is in the fastest area, but not the fairest one.`);else{let cost='';const cafeFast=byArea(fastest,cafeArea);if(cafeFast&&fastWinner){const totalDelta=cafeFast.total_commute_minutes-fastWinner.total_commute_minutes;const maxDelta=cafeFast.max_commute_minutes-fastWinner.max_commute_minutes;const pieces=[];if(finite(totalDelta)&&totalDelta>0.05)pieces.push(`${minutes(totalDelta)} more group travel`);if(finite(maxDelta)&&maxDelta>0.05)pieces.push(`${minutes(maxDelta)} more for the longest trip`);if(pieces.length)cost=` (${pieces.join(', ')})`;}notes.push(`The highest-ranked cafe is in ${cafeArea}, outside the commute winner${fairArea===fastArea?'':'s'}${cost}; choosing it prioritizes cafe quality.`);}}
+        if(cafeArea&&(fairArea||fastArea)){if(cafeArea===fairArea&&cafeArea===fastArea)notes.push(`The top cafe is also in ${cafeArea}, so no objective trade-off is needed.`);else if(cafeArea===fairArea)notes.push(`The top cafe is in the fairest area, but not the fastest one.`);else if(cafeArea===fastArea)notes.push(`The top cafe is in the fastest area, but not the fairest one.`);else{let cost='';const cafeFast=byArea(fastest,cafeArea);if(cafeFast&&fastWinner){const totalDelta=cafeFast.total_commute_minutes-fastWinner.total_commute_minutes;const maxDelta=cafeFast.max_commute_minutes-fastWinner.max_commute_minutes;const pieces=[];if(finite(totalDelta)&&totalDelta>0.05)pieces.push(`${minutes(totalDelta)} more group travel`);if(finite(maxDelta)&&maxDelta>0.05)pieces.push(`${minutes(maxDelta)} more for the longest trip`);if(pieces.length)cost=` (${pieces.join(', ')})`;}notes.push(`The highest-ranked cafe is in ${cafeArea}, outside the commute winner${fairArea===fastArea?'':'s'}${cost}; choosing it prioritizes cafe quality.`);}}
         if(notes.length)section.append(node('p','tradeoff',notes.join(' ')));return section;}
-      function cafeCard(cafe,entry,winner){const card=node('article',`cafe-card${winner?' winner':''}`);card.append(node('span','badge',winner?'Best cafe choice':cafe.area||'Cafe candidate'),node('h4','',cafe.name||'Unnamed cafe'));if(cafe.address)card.append(node('p','',cafe.address));const facts=node('div','facts');facts.append(node('span','',typeof cafe.rating==='number'?`★ ${cafe.rating.toFixed(1)}`:'Rating unavailable'),node('span','',Number.isInteger(cafe.review_count)?`${cafe.review_count.toLocaleString()} reviews`:'Review count unavailable'),node('span','',Number.isInteger(cafe.price_level)?(cafe.price_level===0?'Free price category':'$'.repeat(cafe.price_level)):'Price unavailable'));card.append(facts);
+      function cafeCard(cafe,entry,winner){const card=node('article',`cafe-card${winner?' winner':''}`);card.append(node('span','badge',winner?'Best cafe overall':cafe.area||'Cafe candidate'),node('h4','',cafe.name||'Unnamed cafe'));if(cafe.address)card.append(node('p','',cafe.address));const facts=node('div','facts');facts.append(node('span','',typeof cafe.rating==='number'?`★ ${cafe.rating.toFixed(1)}`:'Rating unavailable'),node('span','',Number.isInteger(cafe.review_count)?`${cafe.review_count.toLocaleString()} reviews`:'Review count unavailable'),node('span','',Number.isInteger(cafe.price_level)?(cafe.price_level===0?'Free price category':'$'.repeat(cafe.price_level)):'Price unavailable'));card.append(facts);
         const status=cafe.open_at_meeting_time;const estimated=cafe.opening_status_source==='regular_schedule';card.append(node('p',status===null||status===undefined?'caution':'',status===true?(estimated?'Expected open · regular weekly hours':'Reported open at meeting time'):status===false?(estimated?'Expected closed · regular weekly hours':'Closed at meeting time'):'Meeting-time hours unverified — check before going.'));
-        if(cafe.opening_status_note)card.append(node('p','caution',cafe.opening_status_note));
+        if(cafe.opening_status_note){const hours=node('details','cafe-details');hours.append(node('summary','','Hours estimate details'),node('p','caution',cafe.opening_status_note));card.append(hours);}
         const factors=entry?.factor_breakdown;if(factors){if(typeof factors.adjusted_rating==='number'&&Number.isFinite(factors.adjusted_rating))card.append(node('p','',`Review-adjusted rating: ${factors.adjusted_rating.toFixed(2)} / 5`));if(typeof factors.station_distance_meters==='number')card.append(node('p','',`${Math.round(factors.station_distance_meters)} m from the provided station`));}
         const url=safeLink(cafe.google_maps_url);if(url){const a=node('a','','View on Google Maps ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';card.append(a);}for(const attr of cafe.attributions||[]){if(attr.provider)card.append(node('p','',`Data attribution: ${attr.provider}`));}return card;}
       function resultCards(calls){let scored=null,found=null;for(const call of calls){const r=parsed(call.result);if(!r||r.error)continue;if(call.name==='score_best_cafe_option'&&Array.isArray(r.ranking))scored=r;if(call.name==='search_cafes_in_areas'&&Array.isArray(r.cafes))found=r;}
         const entries=scored?scored.ranking:(found?.cafes||[]).map(cafe=>({cafe}));if(!entries.length)return null;
-        const section=node('section','results');section.append(node('h3','',scored?'Cafe recommendations':'Cafes found · not yet ranked'));if(scored?.explanation)section.append(node('p','',scored.explanation));const grid=node('div','cafe-grid');const metadata=new Map((found?.cafes||[]).map(c=>[c.place_id,c]));entries.slice(0,4).forEach((entry,i)=>{const c=entry.cafe||{};const cafe={...(c.place_id?metadata.get(c.place_id):{}),...c};grid.append(cafeCard(cafe,entry,!!scored&&i===0));});section.append(grid);if(entries.length>4)section.append(node('p','',`${entries.length-4} additional candidates are available in the tool results.`));return section;}
-      async function send(){if(busy)return;const text=input.value.trim();if(!text)return;busy=true;button.disabled=true;reset.disabled=true;input.value='';addMessage('you',text);const loading=addMessage('CommonGround','Finding common ground…',true);try{const response=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:sessionId})});if(!response.ok)throw new Error(`Chat request failed (${response.status}). Please try again.`);const data=await response.json();if(typeof data.response!=='string'||typeof data.session_id!=='string')throw new Error('Unexpected chat response. Please try again.');sessionId=data.session_id;const calls=Array.isArray(data.tool_calls)?data.tool_calls:[];const summary=decisionSummary(calls);if(summary)messages.insertBefore(summary,loading);const cards=resultCards(calls);if(cards)messages.insertBefore(cards,loading);if(calls.length)messages.insertBefore(toolLog(calls),loading);renderAssistant(loading.querySelector('.content'),data.response);}catch(error){loading.querySelector('.content').textContent=error.message||'Unable to connect. Please try again.';}finally{loading.classList.remove('loading');busy=false;button.disabled=false;reset.disabled=false;input.focus();messages.scrollTop=messages.scrollHeight;}}
-      reset.addEventListener('click',async()=>{if(busy)return;const old=sessionId;sessionId=null;messages.replaceChildren();intro();input.focus();if(old){try{await fetch(`/clear?session_id=${encodeURIComponent(old)}`,{method:'POST'});}catch{/* A fresh session still prevents reuse of old conversation state. */}}});
-      button.addEventListener('click',send);input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();send();}});intro();
+        const section=node('section','results');section.append(node('h3','',scored?'Cafe recommendations':'Cafes found · not yet ranked'));section.append(node('p','','Cafe-quality ranking across searched areas. The top cafe may differ from the cafe in your chosen commute plan.'));const grid=node('div','cafe-grid');const metadata=new Map((found?.cafes||[]).map(c=>[c.place_id,c]));entries.slice(0,4).forEach((entry,i)=>{const c=entry.cafe||{};const cafe={...(c.place_id?metadata.get(c.place_id):{}),...c};grid.append(cafeCard(cafe,entry,!!scored&&i===0));});section.append(grid);if(entries.length>4)section.append(node('p','',`${entries.length-4} additional candidates are available in the tool results.`));return section;}
+      function resizeInput(){input.style.height='auto';input.style.height=`${Math.min(input.scrollHeight,matchMedia('(max-width:760px)').matches?110:150)}px`;}
+      function choosePriority(priority,explicit=true){
+        selectedPriority=priority;comparePending=explicit&&!priority;
+        for(const b of modeButtons)b.setAttribute('aria-pressed',String(b.dataset.priority===priority));
+        priorityLabel.textContent=priority?`${priorityNames[priority]} selected for your next message.`:'No single priority selected.';
+        composePriority.textContent=priority?`Priority: ${priorityNames[priority]}`:explicit?'Next message: compare all three.':'Compare options, or choose a priority.';
+      }
+      for(const b of modeButtons)b.addEventListener('click',()=>{if(!busy)choosePriority(b.dataset.priority===selectedPriority?null:b.dataset.priority);});
+      compareButton.addEventListener('click',()=>{if(!busy)choosePriority(null);});
+      function setBusy(value){
+        busy=value;button.disabled=value;reset.disabled=value;compareButton.disabled=value;
+        for(const b of modeButtons)b.disabled=value;
+        button.textContent=value?'Waiting…':'Send';messages.setAttribute('aria-busy',String(value));
+      }
+      function scrollToResult(el){
+        const top=el.getBoundingClientRect().top-messages.getBoundingClientRect().top+messages.scrollTop-12;
+        messages.scrollTo({top:Math.max(0,top),behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
+        newReply.hidden=true;
+      }
+      function startLoading(el){
+        const content=el.querySelector('.content');content.setAttribute('role','status');
+        content.textContent='Request sent · waiting for CommonGround.';
+        // /chat is not a streaming endpoint. These are wait states, not live tool events.
+        const timers=[setTimeout(()=>{content.textContent='Working on your request · the reply may include travel and cafe comparisons.';},5000),setTimeout(()=>{content.textContent='Still waiting for the reply · some searches take longer. You can keep reading above.';},18000)];
+        return ()=>{timers.forEach(clearTimeout);content.removeAttribute('role');};
+      }
+      function fullResponse(el){
+        const detail=node('details','response-details');detail.append(node('summary','','Read full assistant response · explanation and caveats'));
+        el.before(detail);detail.append(el);return detail;
+      }
+      let latestResult=null;
+      newReply.addEventListener('click',()=>{if(latestResult)scrollToResult(latestResult);});
+      async function send(){
+        if(busy)return;const text=input.value.trim();if(!text)return;
+        const suffix=selectedPriority?`\n\nMy meeting priority: prioritize ${priorityNames[selectedPriority]}.`:comparePending?'\n\nCompare Fairest, Fastest, and Best cafe; no single priority.':'';
+        const message=text+suffix;
+        if(message.length>4000){composeError.hidden=false;composeError.textContent='Please shorten your message to fewer than 3,900 characters.';return;}
+        composeError.hidden=true;newReply.hidden=true;setBusy(true);input.value='';resizeInput();
+        addMessage('you',message);const loading=addMessage('CommonGround','',true);const stopLoading=startLoading(loading);
+        messages.scrollTop=messages.scrollHeight;
+        try{
+          const response=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,session_id:sessionId})});
+          if(!response.ok)throw new Error(`Chat request failed (${response.status}). Please try again.`);
+          const data=await response.json();
+          if(typeof data.response!=='string'||typeof data.session_id!=='string')throw new Error('Unexpected chat response. Please try again.');
+          sessionId=data.session_id;comparePending=false;
+          const follow=messages.scrollHeight-messages.scrollTop-messages.clientHeight<100;
+          stopLoading();loading.classList.remove('loading');
+          const calls=Array.isArray(data.tool_calls)?data.tool_calls:[], summary=decisionSummary(calls), cards=resultCards(calls);
+          if(summary)messages.insertBefore(summary,loading);if(cards)messages.insertBefore(cards,loading);
+          renderAssistant(loading.querySelector('.content'),data.response);
+          const failed=/^(Model call failed:|Sorry, I hit my tool-call limit)/.test(data.response.trim());
+          const explanation=(summary||cards)&&!failed?fullResponse(loading):loading;
+          if(calls.length)messages.insertBefore(toolLog(calls),explanation.nextSibling);
+          latestResult=summary||cards||explanation;
+          if(follow)scrollToResult(latestResult);else newReply.hidden=false;
+        }catch(error){
+          stopLoading();loading.classList.remove('loading');loading.querySelector('.content').textContent=error.message||'Unable to connect. Please try again.';
+          // Keep the draft for retry, including the same selected priority.
+          if(!input.value)input.value=text;resizeInput();latestResult=loading;newReply.hidden=false;
+        }finally{
+          stopLoading();loading.classList.remove('loading');setBusy(false);
+          if(!matchMedia('(max-width:760px)').matches)input.focus();
+        }
+      }
+      reset.addEventListener('click',async()=>{
+        if(busy)return;const old=sessionId;sessionId=null;latestResult=null;newReply.hidden=true;choosePriority(null,false);messages.replaceChildren();intro();input.value='';resizeInput();composeError.hidden=true;
+        if(!matchMedia('(max-width:760px)').matches)input.focus();
+        if(old){try{await fetch(`/clear?session_id=${encodeURIComponent(old)}`,{method:'POST'});}catch{/* A fresh session still prevents reuse of old conversation state. */}}
+      });
+      button.addEventListener('click',send);
+      input.addEventListener('input',resizeInput);
+      input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send();}});
+      intro();
       // Explicit preview fixtures: never presented as a live search result.
       if(new URLSearchParams(location.search).get('demo')==='1'){
         messages.append(node('p','sample-note','Sample layout only · fictional cafes and example data.'));
@@ -370,8 +523,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         const fast={selected_area:'SoHo',ranking:[{area:'SoHo',total_commute_minutes:62,average_commute_minutes:20.7,max_commute_minutes:39},{area:'Union Square',total_commute_minutes:67,average_commute_minutes:22.3,max_commute_minutes:31}]};
         const calls=[{name:'score_fairest_option',args:{},result:JSON.stringify(fair)},{name:'score_fastest_option',args:{},result:JSON.stringify(fast)},{name:'score_best_cafe_option',args:{price_levels:[1,2]},result:JSON.stringify(example)}];messages.append(decisionSummary(calls),resultCards(calls),toolLog(calls));
         const preview=addMessage('CommonGround','');
+        fullResponse(preview);
         renderAssistant(preview.querySelector('.content'),'### Example recommendation\n**Example Cafe A** is our sample choice.\n\n- Rating: **4.6**\n- Price: $$\n- Hours: check before going.\n\n---\nThis is fictional preview data, not a live recommendation.');
       }
     </script>
   </body>
 </html>
+
