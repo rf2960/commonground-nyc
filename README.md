@@ -12,6 +12,14 @@ cost of getting everyone together?* CommonGround shows the fairest area, the fas
 area, and the strongest cafe option side by side, including how much travel time a
 cafe-quality choice adds or saves.
 
+## Team
+
+| Team member | Columbia UNI | Contribution focus |
+| --- | --- | --- |
+| Ruochen Feng | `rf2960` | Fairness objective, system integration, product UX, testing, and deployment |
+| Wenyu Duan (Yulia) | `wd2422` | Google Places cafe search, cafe-quality scoring, and UI development |
+| Andrew Chen | `yc4745` | NYC-metro location resolution, transit routing, and fastest-option scoring |
+
 ## How to use it
 
 1. Enter 2–6 origins plus a specific future date and meeting time.
